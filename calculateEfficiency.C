@@ -32,8 +32,8 @@ void calculateEfficiency() {
 
     o2::mid::Mapping mapping;
 
-    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/testAO2D/AnalysisResults_LHC22o_pass6_small.root";
-    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/testAO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root";
+    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC22o_pass6_small.root";
+    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root";
 
     TFile *fIn = new TFile(inFileName.c_str(),"READ");
     
@@ -276,7 +276,7 @@ void calculateEfficiency() {
 
         for (int period = 0; period < 4; period++) {
         
-            string fileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/testAO2D/AnalysisResults_LHC23"+periods[period]+".root";
+            string fileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23"+periods[period]+".root";
 
             TFile *fInPeriod = new TFile(fileName.c_str(),"READ");
             fInPeriod->cd();
@@ -326,68 +326,65 @@ void calculateEfficiency() {
         new TCanvas();
         hEffPeriodLB->Draw("nostack pfc");*/
 
-        
+        bool uploadToCCDB = false; //Only upload to CCDB if this is true
+        if (uploadToCCDB) {
+            //Variables used in the loop
+            int LB936 = 0; //LB 1-> 936
+            int plane = 0; //plane
 
-        //Variables used in the loop
-        int LB936 = 0; //LB 1-> 936
-        int plane = 0; //plane
+            std::vector<o2::mid::ChEffCounter> counterVector; //Vector of efficiency counter structs
+            struct o2::mid::ChEffCounter entry; //Struct for efficiency counters
+            o2::mid::ChamberEfficiency effMap; //Chamber efficiency map
 
-        std::vector<o2::mid::ChEffCounter> counterVector; //Vector of efficiency counter structs
-        struct o2::mid::ChEffCounter entry; //Struct for efficiency counters
-        o2::mid::ChamberEfficiency effMap; //Chamber efficiency map
+            //vector of struct, push back the struct populated with counts
+            for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
+                for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+                    for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
+                        //Debug printout
+                        //cout << "det ID " << ide << " col " << icol << " line " << iline << " LB " << mapping.getBoardId(iline,icol,ide) << endl;
+                        //cout << "LB: " << mapping.getBoardId(iline,icol,ide) << "\t unique FEEID:" << o2::mid::detparams::makeUniqueFEEId(ide, icol, iline) << "\t";
+                        
+                        plane = o2::mid::detparams::getChamber(ide); //Get detection plane
 
-        //vector of struct, push back the struct populated with counts
-        for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
-            for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
-                for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
-                    //Debug printout
-                    //cout << "det ID " << ide << " col " << icol << " line " << iline << " LB " << mapping.getBoardId(iline,icol,ide) << endl;
-                    //cout << "LB: " << mapping.getBoardId(iline,icol,ide) << "\t unique FEEID:" << o2::mid::detparams::makeUniqueFEEId(ide, icol, iline) << "\t";
-                    
-                    plane = o2::mid::detparams::getChamber(ide); //Get detection plane
+                        LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
 
-                    LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
+                        entry.deId =  uint8_t(ide);
+                        entry.columnId = uint8_t(icol);
+                        entry.lineId = uint8_t(iline);
 
-                    entry.deId =  uint8_t(ide);
-                    entry.columnId = uint8_t(icol);
-                    entry.lineId = uint8_t(iline);
+                        entry.counts[0] = hFiredBPLB->GetBinContent(LB936); //BP
+                        entry.counts[1] = hFiredNBPLB->GetBinContent(LB936); //NBP
+                        entry.counts[2] = hFiredBothPlanesLB->GetBinContent(LB936); //Both
+                        entry.counts[3] = hTotLB->GetBinContent(LB936); //Total
 
-                    entry.counts[0] = hFiredBPLB->GetBinContent(LB936); //BP
-                    entry.counts[1] = hFiredNBPLB->GetBinContent(LB936); //NBP
-                    entry.counts[2] = hFiredBothPlanesLB->GetBinContent(LB936); //Both
-                    entry.counts[3] = hTotLB->GetBinContent(LB936); //Total
-
-                    counterVector.push_back(entry);
-                    
-                    //Debug printout
-                    //cout << LB936 << "\t both: " << hFiredBothPlanesLB->GetBinContent(LB936) << "\t tot: " << hTotLB->GetBinContent(LB936) << endl;
+                        counterVector.push_back(entry);
+                        
+                        //Debug printout
+                        //cout << LB936 << "\t both: " << hFiredBothPlanesLB->GetBinContent(LB936) << "\t tot: " << hTotLB->GetBinContent(LB936) << endl;
+                    }
                 }
             }
-        }
 
-        //Debug printouts to test vector filling
-        //cout << "Size of counter vector: " << counterVector.size() << endl;
-        //auto& polen = counterVector[21];
-        //cout << "deId " << std::to_string(polen.deId) << " column " << std::to_string(polen.columnId) << " line " << std::to_string(polen.lineId) << " counts " << polen.counts[2] << endl;
+            //Debug printouts to test vector filling
+            //cout << "Size of counter vector: " << counterVector.size() << endl;
+            //auto& polen = counterVector[21];
+            //cout << "deId " << std::to_string(polen.deId) << " column " << std::to_string(polen.columnId) << " line " << std::to_string(polen.lineId) << " counts " << polen.counts[2] << endl;
 
-        //Fill effMap from vectors
-        effMap.setFromCounters(counterVector);
-        
-        //Debug, test of getEfficiency function
-        //cout << "Test get efficiency: " << effMap.getEfficiency(68,5,1,o2::mid::ChamberEfficiency::EffType::BothPlanes);
-        //det ID 68 col 5 line 1 LB 220        
-        //getEfficiency(int deId, int columnId, int lineId, EffType type) const
+            //Fill effMap from vectors
+            effMap.setFromCounters(counterVector);
+            
+            //Debug, test of getEfficiency function
+            //cout << "Test get efficiency: " << effMap.getEfficiency(68,5,1,o2::mid::ChamberEfficiency::EffType::BothPlanes);
+            //det ID 68 col 5 line 1 LB 220        
+            //getEfficiency(int deId, int columnId, int lineId, EffType type) const
 
-        //Save in CCDB
-        auto data = effMap.getCountersAsVector();
-        
-        o2::ccdb::CcdbApi api; //CCDB API
-        api.init("http://ccdb-test.cern.ch:8080"); //Open connection to test CCDB
-        
-        std::map<std::string, std::string> md; //Metada map
-        
-        api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, 1, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP); //Upload in CCDB
-       
+            //Save in CCDB
+            auto data = effMap.getCountersAsVector();
+            o2::ccdb::CcdbApi api; //CCDB API
+            api.init("http://ccdb-test.cern.ch:8080"); //Open connection to test CCDB
+            std::map<std::string, std::string> md; //Metada map
+            api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, 1, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP); //Upload in CCDB
+        } //end if uploadToCCDB == true
 
     //} //If there is a loop on multiple runs
 
