@@ -285,6 +285,11 @@ void calculateEfficiency() {
         THStack *hEffPeriodLB_planes[4];
         TH1F *hEffLB_period_planes[4][4];
 
+        TLegend *lPeriods = new TLegend(0.736,0.195,0.901,0.357,"","rNDC");
+        lPeriods->SetBorderSize(0); //No borders in legend
+        lPeriods->SetFillStyle(0); //Transparent background
+        lPeriods->SetTextFont(62); //Bold legend
+
         int color[4] = {2,3,4,6};
 
         for (int i = 0; i < 4; i++) {
@@ -368,19 +373,19 @@ void calculateEfficiency() {
                         hEffLB_period_planes[period][3]->SetBinError(i-702,errEffBothLB);
                     }
                 }
-                else {
-                    cout << "here nan " << period << endl;
-                }
             }
 
+            //Add histo to THStack and set marker color/size/style
             for (int j = 0; j < 4; j++) {
-                cout << "here " << period << endl;
                 hEffLB_period_planes[period][j]->SetLineColor(color[period]);
                 hEffLB_period_planes[period][j]->SetMarkerColor(color[period]);
                 hEffLB_period_planes[period][j]->SetMarkerStyle(8);
                 hEffLB_period_planes[period][j]->SetMarkerSize(.8);
                 hEffPeriodLB_planes[j]->Add(hEffLB_period_planes[period][j]);
             }
+
+            //Add Legend entry taking the MT11 historgam (taking any other would work, this is just randomly chosed)
+            lPeriods->AddEntry(hEffLB_period_planes[period][0],("LHC23_"+periods[period]).c_str(),"p");
 
             v_hEffLB_both[period]->SetLineColor(period+1);
             hEffPeriodLB->Add(v_hEffLB_both[period]);
@@ -391,12 +396,17 @@ void calculateEfficiency() {
         cTot->cd();
         hEffPeriodLB->Draw("nostack");
 
+        //4 canvases, one per plane
         TCanvas *cEffLBPeriod[4];
+
+        
 
         for (int i = 0; i < 4; i++) {
             cEffLBPeriod[i] =  new TCanvas();
             cEffLBPeriod[i]->cd();
+            hEffPeriodLB_planes[i]->SetTitle(planeName[i].c_str());
             hEffPeriodLB_planes[i]->Draw("nostack");
+            lPeriods->Draw("SAME");
             //hEffLB_period_planes[i][0]->Draw("HISTO"); //different periods, plane MT11
         }
 
