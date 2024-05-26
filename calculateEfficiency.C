@@ -266,45 +266,79 @@ void calculateEfficiency() {
         hEffRPCplanes2D_both[3]->Draw("COLZ");
 
         //Analyze the 4 periods of LHC23 pass4 skimmed QC1
-        /*string periods[4] = {"za","zj","zs","zt"};
+        string periods[4] = {"za","zj","zs","zt"};
 
         TH1F *v_hEffLB_both[4];
         TH1F *v_hEffLB_BP[4];
         TH1F *v_hEffLB_NBP[4];
 
+        TH1F *hFiredBothPlanesLBPeriod[4];
+        TH1F *hFiredBPLBPeriod[4];
+        TH1F *hFiredNBPLBPeriod[4];
+        TH1F *hTotLBPeriod[4];
+
+        string fileName[4];
+
+        TFile *fInPeriod[4];
+
         THStack *hEffPeriodLB = new THStack();
+        THStack *hEffPeriodLB_planes[4];
+        TH1F *hEffLB_period_planes[4][4];
+
+        int color[4] = {2,3,4,6};
+
+        for (int i = 0; i < 4; i++) {
+            hEffPeriodLB_planes[i] = new THStack();
+        }
 
         for (int period = 0; period < 4; period++) {
+            
+            for (int j = 0; j < 4; j++) {
+                hEffLB_period_planes[period][j] = new TH1F(("hEffLB_period_plane_"+to_string(j)+periods[period]).c_str(),("hEffLB_period_plane_"+to_string(j)+periods[period]).c_str(),234,-0.5,235.5);
+            }
         
-            string fileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23"+periods[period]+".root";
+            //string fileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23"+periods[period]+".root";
+            fileName[period] = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23"+periods[period]+".root";
 
-            TFile *fInPeriod = new TFile(fileName.c_str(),"READ");
-            fInPeriod->cd();
+            //TFile *fInPeriod = new TFile(fileName.c_str(),"READ");
+            fInPeriod[period] = new TFile(fileName[period].c_str(),"READ");
+            fInPeriod[period]->cd();
+            
+            cout << fileName[period] << endl;
 
-            TDirectoryFile *dPeriod = (TDirectoryFile*)fInPeriod->Get("mid-efficiency");
+            TDirectoryFile *dPeriod = (TDirectoryFile*)fInPeriod[period]->Get("mid-efficiency");
             dPeriod->cd();
 
-            hFiredBothPlanesLB = (TH1F*)dPeriod->Get("nFiredBothperBoard");
-            hFiredBPLB = (TH1F*)dPeriod->Get("nFiredBPperBoard");
-            hFiredNBPLB = (TH1F*)dPeriod->Get("nFiredNBPperBoard");
-            hTotLB = (TH1F*)dPeriod->Get("nTotperBoard");
+            //TH1F* hFiredBothPlanesLBPeriod = (TH1F*)dPeriod->Get("nFiredBothperBoard");
+            //TH1F* hFiredBPLBPeriod = (TH1F*)dPeriod->Get("nFiredBPperBoard");
+            //TH1F* hFiredNBPLBPeriod = (TH1F*)dPeriod->Get("nFiredNBPperBoard");
+            //TH1F* hTotLBPeriod = (TH1F*)dPeriod->Get("nTotperBoard");
+            hFiredBothPlanesLBPeriod[period] = new TH1F();
+            hFiredBPLBPeriod[period] = new TH1F();
+            hFiredNBPLBPeriod[period] = new TH1F();
+            hTotLBPeriod[period] = new TH1F();
 
-            v_hEffLB_both[period] = new TH1F("effLB_both","effLB_both",nBinsBoard,-0.5,935.5);
-            v_hEffLB_BP[period] = new TH1F("effLB_BP","effLB_BP",nBinsBoard,-0.5,935.5);
-            v_hEffLB_NBP[period] = new TH1F("effLB_NBP","effLB_NBP",nBinsBoard,-0.5,935.5);
+            hFiredBothPlanesLBPeriod[period] = (TH1F*)dPeriod->Get("nFiredBothperBoard");
+            hFiredBPLBPeriod[period] = (TH1F*)dPeriod->Get("nFiredBPperBoard");
+            hFiredNBPLBPeriod[period] = (TH1F*)dPeriod->Get("nFiredNBPperBoard");
+            hTotLBPeriod[period] = (TH1F*)dPeriod->Get("nTotperBoard");
+
+            v_hEffLB_both[period] = new TH1F(("effLB_both"+periods[period]).c_str(),("effLB_both"+periods[period]).c_str(),nBinsBoard,-0.5,935.5);
+            v_hEffLB_BP[period] = new TH1F(("effLB_BP"+periods[period]).c_str(),("effLB_BP"+periods[period]).c_str(),nBinsBoard,-0.5,935.5);
+            v_hEffLB_NBP[period] = new TH1F(("effLB_NBP"+periods[period]).c_str(),("effLB_NBP"+periods[period]).c_str(),nBinsBoard,-0.5,935.5);
 
             for (int i = 1; i <= nBinsBoard; i++) {
-                cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
+                //cout <<"period: " << periods[period] << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
 
-                if (hTotLB->GetBinContent(i) != 0) {
+                if (hTotLBPeriod[period]->GetBinContent(i) != 0) {
 
-                    effBothLB = (hFiredBothPlanesLB->GetBinContent(i)/hTotLB->GetBinContent(i))*100;
-                    effBPLB = (hFiredBPLB->GetBinContent(i)/hTotLB->GetBinContent(i))*100;
-                    effNBPLB = (hFiredNBPLB->GetBinContent(i)/hTotLB->GetBinContent(i))*100;
+                    effBothLB = (hFiredBothPlanesLBPeriod[period]->GetBinContent(i)/hTotLBPeriod[period]->GetBinContent(i))*100;
+                    effBPLB = (hFiredBPLBPeriod[period]->GetBinContent(i)/hTotLBPeriod[period]->GetBinContent(i))*100;
+                    effNBPLB = (hFiredNBPLBPeriod[period]->GetBinContent(i)/hTotLBPeriod[period]->GetBinContent(i))*100;
 
-                    errEffBothLB = TMath::Sqrt(effBothLB*(100-effBothLB)/hTotLB->GetBinContent(i));
-                    errEffBPLB = TMath::Sqrt(effBPLB*(100-effBPLB)/hTotLB->GetBinContent(i));
-                    errEffNBPLB = TMath::Sqrt(effNBPLB*(100-effNBPLB)/hTotLB->GetBinContent(i));
+                    errEffBothLB = TMath::Sqrt(effBothLB*(100-effBothLB)/hTotLBPeriod[period]->GetBinContent(i));
+                    errEffBPLB = TMath::Sqrt(effBPLB*(100-effBPLB)/hTotLBPeriod[period]->GetBinContent(i));
+                    errEffNBPLB = TMath::Sqrt(effNBPLB*(100-effNBPLB)/hTotLBPeriod[period]->GetBinContent(i));
 
                     v_hEffLB_both[period]->Fill(i,effBothLB);
                     v_hEffLB_both[period]->SetBinError(i,errEffBothLB);
@@ -313,18 +347,58 @@ void calculateEfficiency() {
                     v_hEffLB_NBP[period]->Fill(i,effNBPLB);
                     v_hEffLB_NBP[period]->SetBinError(i,errEffNBPLB);
 
-                    v_hEffLB_both[period]->SetLineColor(period+1);
-                    hEffPeriodLB->Add(v_hEffLB_both[period]);
+                    cout <<periods[period] << "\t" << effBothLB << "\t" << errEffBothLB << "\t" << hTotLBPeriod[period]->GetBinContent(i) << endl;
+
+                    //Efficiency per plane
+                    if (i <= 234) {
+                        hEffLB_period_planes[period][0]->SetBinContent(i,effBothLB);
+                        hEffLB_period_planes[period][0]->SetBinError(i,errEffBothLB);
+                    }
+                    else if (i >= 235 && i <= 468) {
+                        hEffLB_period_planes[period][1]->SetBinContent(i-234,effBothLB);
+                        hEffLB_period_planes[period][1]->SetBinError(i-234,errEffBothLB);
+                    }
+                    else if (i>= 469 && i <= 702) {
+                        hEffLB_period_planes[period][2]->SetBinContent(i-468,effBothLB);
+                        hEffLB_period_planes[period][2]->SetBinError(i-468,errEffBothLB);
+                    }
+
+                    else {
+                        hEffLB_period_planes[period][3]->SetBinContent(i-702,effBothLB);
+                        hEffLB_period_planes[period][3]->SetBinError(i-702,errEffBothLB);
+                    }
+                }
+                else {
+                    cout << "here nan " << period << endl;
                 }
             }
 
-            //fInPeriod->Close();
-            //delete fInPeriod;
+            for (int j = 0; j < 4; j++) {
+                cout << "here " << period << endl;
+                hEffLB_period_planes[period][j]->SetLineColor(color[period]);
+                hEffLB_period_planes[period][j]->SetMarkerColor(color[period]);
+                hEffLB_period_planes[period][j]->SetMarkerStyle(8);
+                hEffLB_period_planes[period][j]->SetMarkerSize(.8);
+                hEffPeriodLB_planes[j]->Add(hEffLB_period_planes[period][j]);
+            }
 
+            v_hEffLB_both[period]->SetLineColor(period+1);
+            hEffPeriodLB->Add(v_hEffLB_both[period]);
+            
         }
+        
+        TCanvas *cTot = new TCanvas();
+        cTot->cd();
+        hEffPeriodLB->Draw("nostack");
 
-        new TCanvas();
-        hEffPeriodLB->Draw("nostack pfc");*/
+        TCanvas *cEffLBPeriod[4];
+
+        for (int i = 0; i < 4; i++) {
+            cEffLBPeriod[i] =  new TCanvas();
+            cEffLBPeriod[i]->cd();
+            hEffPeriodLB_planes[i]->Draw("nostack");
+            //hEffLB_period_planes[i][0]->Draw("HISTO"); //different periods, plane MT11
+        }
 
         bool uploadToCCDB = false; //Only upload to CCDB if this is true
         if (uploadToCCDB) {
