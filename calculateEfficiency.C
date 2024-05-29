@@ -28,6 +28,8 @@
 
 using namespace std;
 
+bool debug = false;
+
 void calculateEfficiency() {
 
     o2::mid::Mapping mapping;
