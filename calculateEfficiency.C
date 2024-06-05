@@ -48,18 +48,26 @@ void calculateEfficiency() {
 
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
+    //Declare histo
     TH1F *hEffLBplanes1D_both[4]; //4 1D histograms for LB (one per plane eff on both planes)
     TH1F *hEffLBplanes1D_BP[4]; //4 1D histograms for LB (one per plane eff on BP)
     TH1F *hEffLBplanes1D_NBP[4]; //4 1D histograms for LB (one per plane eff on NBP)
-    TH2F *hEffRPCplanes2D_both[4]; //4 2D histograms for RPC efficiency (one per plane)
+    TH2F *hEffRPCplanes2D_both[4]; //4 2D histograms for RPC efficiency both planes, one per plane
+    TH2F *hEffRPCplanes2D_BP[4]; //4 2D histograms for RPC efficiency BP, one per plane
+    TH2F *hEffRPCplanes2D_NBP[4]; //4 2D histograms for RPC efficiency NBP, one per plane
 
+    //Initialize them
     for (int i = 0; i < 4; i++) {
-        hEffRPCplanes2D_both[i] = new TH2F(("RPC 2D efficiency "+planeName[i]).c_str(),("RPC 2D efficiency "+planeName[i]).c_str(),2,-1,1,9,0.5,9.5);
+        hEffRPCplanes2D_both[i] = new TH2F(("RPC 2D efficiency both "+planeName[i]).c_str(),("RPC 2D efficiency both "+planeName[i]).c_str(),2,-1,1,9,0.5,9.5);
+        hEffRPCplanes2D_BP[i] = new TH2F(("RPC 2D efficiency BP "+planeName[i]).c_str(),("RPC 2D efficiency BP "+planeName[i]).c_str(),2,-1,1,9,0.5,9.5);
+        hEffRPCplanes2D_NBP[i] = new TH2F(("RPC 2D efficiency NBP "+planeName[i]).c_str(),("RPC 2D efficiency NBP "+planeName[i]).c_str(),2,-1,1,9,0.5,9.5);
+
         hEffLBplanes1D_both[i] = new TH1F(("LB efficiency both "+planeName[i]).c_str(),("LB efficiency both "+planeName[i]).c_str(),234,0.5,234.5);
         hEffLBplanes1D_BP[i] = new TH1F(("LB efficiency BP "+planeName[i]).c_str(),("LB efficiency BP "+planeName[i]).c_str(),234,0.5,234.5);
         hEffLBplanes1D_NBP[i] = new TH1F(("LB efficiency NBP "+planeName[i]).c_str(),("LB efficiency NBP "+planeName[i]).c_str(),234,0.5,234.5);
     }
  
+    //Open the directory with the output of the task 
     TDirectoryFile *d = (TDirectoryFile*)fIn->Get("mid-efficiency");
     d->cd();
 
@@ -151,33 +159,49 @@ void calculateEfficiency() {
         //MT11
         if (i >= 1 && i <= 9) {
             hEffRPCplanes2D_both[0]->SetBinContent(2,i,effBothRPC);
+            hEffRPCplanes2D_BP[0]->SetBinContent(2,i,effBPRPC);
+            hEffRPCplanes2D_NBP[0]->SetBinContent(2,i,effNBPRPC);
         }
         else if (i >= 37 && i <= 45) {
             hEffRPCplanes2D_both[0]->SetBinContent(1,i-36,effBothRPC);
+            hEffRPCplanes2D_BP[0]->SetBinContent(1,i-36,effBPRPC);
+            hEffRPCplanes2D_NBP[0]->SetBinContent(1,i-36,effNBPRPC);
         }
 
         //MT12
         else if (i >= 10 && i <= 18) {
             hEffRPCplanes2D_both[1]->SetBinContent(2,i-9,effBothRPC);
+            hEffRPCplanes2D_BP[1]->SetBinContent(2,i-9,effBPRPC);
+            hEffRPCplanes2D_NBP[1]->SetBinContent(2,i-9,effNBPRPC);
         }
         else if (i >= 46 && i <= 54) {
             hEffRPCplanes2D_both[1]->SetBinContent(1,i-45,effBothRPC);
+            hEffRPCplanes2D_BP[1]->SetBinContent(2,i-45,effBPRPC);
+            hEffRPCplanes2D_NBP[1]->SetBinContent(2,i-45,effNBPRPC);
         }
 
         //MT21
         else if (i >= 19 && i <= 27) {
             hEffRPCplanes2D_both[2]->SetBinContent(2,i-18,effBothRPC);
+            hEffRPCplanes2D_BP[2]->SetBinContent(2,i-18,effBPRPC);
+            hEffRPCplanes2D_NBP[2]->SetBinContent(2,i-18,effNBPRPC);
         }
         else if (i >= 55 && i <= 63) {
             hEffRPCplanes2D_both[2]->SetBinContent(1,i-54,effBothRPC);
+            hEffRPCplanes2D_BP[2]->SetBinContent(2,i-54,effBPRPC);
+            hEffRPCplanes2D_NBP[2]->SetBinContent(2,i-54,effNBPRPC);
         }
 
         //MT22
         else if (i >= 28 && i <= 36) {
             hEffRPCplanes2D_both[3]->SetBinContent(2,i-27,effBothRPC);
+            hEffRPCplanes2D_BP[3]->SetBinContent(2,i-27,effBPRPC);
+            hEffRPCplanes2D_NBP[3]->SetBinContent(2,i-27,effNBPRPC);
         }
         else if (i >= 64 && i <= 72) {
             hEffRPCplanes2D_both[3]->SetBinContent(1,i-63,effBothRPC);
+            hEffRPCplanes2D_BP[3]->SetBinContent(2,i-63,effBPRPC);
+            hEffRPCplanes2D_NBP[3]->SetBinContent(2,i-63,effNBPRPC);
         }
     }
 
@@ -287,7 +311,7 @@ void calculateEfficiency() {
     hEffRPC_NBP->GetYaxis()->SetRangeUser(0,100);
     hEffRPC_NBP->Draw("P");
 
-    //Eff per LB
+    //Eff per LB (1-936 index)
     TCanvas *cEffBotPlanesBoard = new TCanvas(); //Both
     cEffBotPlanesBoard->cd();
     hEffLB_both->SetStats(0);
@@ -402,23 +426,20 @@ void calculateEfficiency() {
         cEffLB_plane_NBP[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_NBP_total_"+planeName[i]+".pdf").c_str());   
     }
 
-    /*cEffLB_plane_both->Divide(2,2);
-    cEffLB_plane_both->cd(1);
-    hEffLBplanes1D_both[0]->SetStats(0);
-    hEffLBplanes1D_both[0]->Draw("P");
-    cEffLB_plane_both->cd(2);
-    hEffLBplanes1D_both[1]->SetStats(0);
-    hEffLBplanes1D_both[1]->Draw("P");
-    cEffLB_plane_both->cd(3);
-    hEffLBplanes1D_both[1]->SetStats(0);
-    hEffLBplanes1D_both[2]->Draw("P");
-    cEffLB_plane_both->cd(4);
-    hEffLBplanes1D_both[1]->SetStats(0);
-    hEffLBplanes1D_both[3]->Draw("P");*/
-
+    //2D eff map per RPC both planes
     TCanvas *cEffRPC_plane_both = new TCanvas();
+    cEffRPC_plane_both->SetCanvasSize(1200,1200);
     cEffRPC_plane_both->Divide(2,2);
-    cEffRPC_plane_both->cd(1);
+    
+    for (int plane = 0; plane < nBinsPlane; plane++) {
+        cEffRPC_plane_both->cd(plane+1);
+        hEffRPCplanes2D_both[plane]->SetTitle((planeName[plane]+" both").c_str());
+        hEffRPCplanes2D_both[plane]->GetZaxis()->SetRangeUser(0,100);
+        hEffRPCplanes2D_both[plane]->SetStats(0);
+        hEffRPCplanes2D_both[plane]->Draw("COLZ");
+    } 
+
+    /*cEffRPC_plane_both->cd(1);
     hEffRPCplanes2D_both[0]->GetZaxis()->SetRangeUser(0,100);
     hEffRPCplanes2D_both[0]->SetStats(0);
     hEffRPCplanes2D_both[0]->Draw("COLZ");
@@ -433,7 +454,7 @@ void calculateEfficiency() {
     cEffRPC_plane_both->cd(4);
     hEffRPCplanes2D_both[3]->GetZaxis()->SetRangeUser(0,100);
     hEffRPCplanes2D_both[3]->SetStats(0);
-    hEffRPCplanes2D_both[3]->Draw("COLZ");
+    hEffRPCplanes2D_both[3]->Draw("COLZ");*/
 
     //Analyze the 4 periods of LHC23 pass4 skimmed QC1
     string periods[4] = {"za","zj","zs","zt"};
