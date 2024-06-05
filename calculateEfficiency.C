@@ -34,8 +34,8 @@ void calculateEfficiency() {
 
     o2::mid::Mapping mapping;
 
-    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC22o_pass6_small.root";
-    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root";
+    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root"; //pp
+    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23zzh_pass4_test1_QC1_small.root"; //Pb-Pb
 
     TFile *fIn = new TFile(inFileName.c_str(),"READ");
     
@@ -48,12 +48,16 @@ void calculateEfficiency() {
 
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
-    TH1F *hEffLBplanes1D_both[4]; //4 1D histograms for LB (one per plane)
+    TH1F *hEffLBplanes1D_both[4]; //4 1D histograms for LB (one per plane eff on both planes)
+    TH1F *hEffLBplanes1D_BP[4]; //4 1D histograms for LB (one per plane eff on BP)
+    TH1F *hEffLBplanes1D_NBP[4]; //4 1D histograms for LB (one per plane eff on NBP)
     TH2F *hEffRPCplanes2D_both[4]; //4 2D histograms for RPC efficiency (one per plane)
 
     for (int i = 0; i < 4; i++) {
         hEffRPCplanes2D_both[i] = new TH2F(("RPC 2D efficiency "+planeName[i]).c_str(),("RPC 2D efficiency "+planeName[i]).c_str(),2,-1,1,9,0.5,9.5);
-        hEffLBplanes1D_both[i] = new TH1F(("LB efficiency "+planeName[i]).c_str(),("LB efficiency "+planeName[i]).c_str(),234,0.5,243.5);
+        hEffLBplanes1D_both[i] = new TH1F(("LB efficiency both "+planeName[i]).c_str(),("LB efficiency both "+planeName[i]).c_str(),234,0.5,234.5);
+        hEffLBplanes1D_BP[i] = new TH1F(("LB efficiency BP "+planeName[i]).c_str(),("LB efficiency BP "+planeName[i]).c_str(),234,0.5,234.5);
+        hEffLBplanes1D_NBP[i] = new TH1F(("LB efficiency NBP "+planeName[i]).c_str(),("LB efficiency NBP "+planeName[i]).c_str(),234,0.5,234.5);
     }
  
     TDirectoryFile *d = (TDirectoryFile*)fIn->Get("mid-efficiency");
@@ -200,88 +204,205 @@ void calculateEfficiency() {
             if (i <= 234) {
                 hEffLBplanes1D_both[0]->SetBinContent(i,effBothLB);
                 hEffLBplanes1D_both[0]->SetBinError(i,errEffBothLB);
+                hEffLBplanes1D_BP[0]->SetBinContent(i,effBPLB);
+                hEffLBplanes1D_BP[0]->SetBinError(i,errEffBPLB);
+                hEffLBplanes1D_NBP[0]->SetBinContent(i,effNBPLB);
+                hEffLBplanes1D_NBP[0]->SetBinError(i,errEffNBPLB);
             }
             else if (i >= 235 && i <= 468) {
                 hEffLBplanes1D_both[1]->SetBinContent(i-234,effBothLB);
                 hEffLBplanes1D_both[1]->SetBinError(i-234,errEffBothLB);
+                hEffLBplanes1D_BP[1]->SetBinContent(i-234,effBPLB);
+                hEffLBplanes1D_BP[1]->SetBinError(i-234,errEffBPLB);
+                hEffLBplanes1D_NBP[1]->SetBinContent(i-234,effNBPLB);
+                hEffLBplanes1D_NBP[1]->SetBinError(i-234,errEffNBPLB);
             }
             else if (i>= 469 && i <= 702) {
                 hEffLBplanes1D_both[2]->SetBinContent(i-468,effBothLB);
                 hEffLBplanes1D_both[2]->SetBinError(i-468,errEffBothLB);
+                hEffLBplanes1D_BP[2]->SetBinContent(i-468,effBPLB);
+                hEffLBplanes1D_BP[2]->SetBinError(i-468,errEffBPLB);
+                hEffLBplanes1D_NBP[2]->SetBinContent(i-468,effNBPLB);
+                hEffLBplanes1D_NBP[2]->SetBinError(i-468,errEffNBPLB);
             }
 
             else {
                 hEffLBplanes1D_both[3]->SetBinContent(i-702,effBothLB);
                 hEffLBplanes1D_both[3]->SetBinError(i-702,errEffBothLB);
+                hEffLBplanes1D_BP[3]->SetBinContent(i-702,effBPLB);
+                hEffLBplanes1D_BP[3]->SetBinError(i-702,errEffBPLB);
+                hEffLBplanes1D_NBP[3]->SetBinContent(i-702,effNBPLB);
+                hEffLBplanes1D_NBP[3]->SetBinError(i-702,errEffNBPLB);
             }
         }
     }
 
-    TCanvas *cEffBotPlanesPlane = new TCanvas();
+    //Eff per plane
+    TCanvas *cEffBotPlanesPlane = new TCanvas(); //Both
     cEffBotPlanesPlane->cd();
     hEffPlane_both->SetStats(0);
     hEffPlane_both->GetXaxis()->SetTitle("Plane");
     hEffPlane_both->GetYaxis()->SetTitle("Efficiency [%]");
+    hEffPlane_both->GetYaxis()->SetRangeUser(0,100);
     hEffPlane_both->Draw("P");
 
-    TCanvas *cEffBPPlane = new TCanvas();
+    TCanvas *cEffBPPlane = new TCanvas(); //BP
     cEffBPPlane->cd();
     hEffPlane_BP->SetStats(0);
     hEffPlane_BP->GetXaxis()->SetTitle("Plane");
     hEffPlane_BP->GetYaxis()->SetTitle("Efficiency [%]");
+    hEffPlane_BP->GetYaxis()->SetRangeUser(0,100);
     hEffPlane_BP->Draw("P");
 
-    TCanvas *cEffNBPPlane = new TCanvas();
+    TCanvas *cEffNBPPlane = new TCanvas(); //NBP
     cEffNBPPlane->cd();
     hEffPlane_NBP->SetStats(0);
     hEffPlane_NBP->GetXaxis()->SetTitle("Plane");
     hEffPlane_NBP->GetYaxis()->SetTitle("Efficiency [%]");
+    hEffPlane_NBP->GetYaxis()->SetRangeUser(0,100);
     hEffPlane_NBP->Draw("P");
 
-    TCanvas *cEffBotPlanesRPC = new TCanvas();
+    //Eff per RPC
+    TCanvas *cEffBotPlanesRPC = new TCanvas(); //Both
     cEffBotPlanesRPC->cd();
     hEffRPC_both->SetStats(0);
     hEffRPC_both->GetXaxis()->SetTitle("RPC");
     hEffRPC_both->GetYaxis()->SetTitle("Efficiency [%]");
+    hEffRPC_both->GetYaxis()->SetRangeUser(0,100);
     hEffRPC_both->Draw("P");
 
-    TCanvas *cEffBPRPC = new TCanvas();
+    TCanvas *cEffBPRPC = new TCanvas(); //BP
     cEffBPRPC->cd();
     hEffRPC_BP->SetStats(0);
     hEffRPC_BP->GetXaxis()->SetTitle("RPC");
     hEffRPC_BP->GetYaxis()->SetTitle("Efficiency [%]");
+    hEffRPC_BP->GetYaxis()->SetRangeUser(0,100);
     hEffRPC_BP->Draw("P");
 
-    TCanvas *cEffNBPRPC = new TCanvas();
+    TCanvas *cEffNBPRPC = new TCanvas(); //NBP
     cEffNBPRPC->cd();
     hEffRPC_NBP->SetStats(0);
     hEffRPC_NBP->GetXaxis()->SetTitle("RPC");
     hEffRPC_NBP->GetYaxis()->SetTitle("Efficiency [%]");
+    hEffRPC_NBP->GetYaxis()->SetRangeUser(0,100);
     hEffRPC_NBP->Draw("P");
 
-    TCanvas *cEffBotPlanesBoard = new TCanvas();
+    //Eff per LB
+    TCanvas *cEffBotPlanesBoard = new TCanvas(); //Both
     cEffBotPlanesBoard->cd();
     hEffLB_both->SetStats(0);
     hEffLB_both->GetXaxis()->SetTitle("Local Board");
     hEffLB_both->GetYaxis()->SetTitle("Efficiency [%]");
     hEffLB_both->Draw("HISTO");
 
-    TCanvas *cEffBPBoard = new TCanvas();
+    TCanvas *cEffBPBoard = new TCanvas(); //BP
     cEffBPBoard->cd();
     hEffLB_BP->SetStats(0);
     hEffLB_BP->GetXaxis()->SetTitle("Local Board");
     hEffLB_BP->GetYaxis()->SetTitle("Efficiency [%]");
     hEffLB_BP->Draw("HISTO");
 
-    TCanvas *cEffNBPBoard = new TCanvas();
+    TCanvas *cEffNBPBoard = new TCanvas(); //NBP
     cEffNBPBoard->cd();
     hEffLB_NBP->SetStats(0);
     hEffLB_NBP->GetXaxis()->SetTitle("Local Board");
     hEffLB_NBP->GetYaxis()->SetTitle("Efficiency [%]");
     hEffLB_NBP->Draw("HISTO");
 
-    TCanvas *cEffLB_plane_both = new TCanvas();
-    cEffLB_plane_both->Divide(2,2);
+    //Legend for canvas with LB efficiency per plane
+    TLegend *lTot = new TLegend(0.369,0.302,0.885,0.357,"","rNDC");
+    lTot->SetFillStyle(0); //Transparent background
+    lTot->SetTextFont(62); //Bold legend
+
+    //Canvas for LB efficiency per plane
+    TCanvas *cEffLB_plane_both[4];
+    TCanvas *cEffLB_plane_BP[4];
+    TCanvas *cEffLB_plane_NBP[4];
+
+    for (int i = 0; i < 4; i++) {
+        cEffLB_plane_both[i] = new TCanvas();
+        cEffLB_plane_BP[i] = new TCanvas();
+        cEffLB_plane_NBP[i] = new TCanvas();
+        //both
+        cEffLB_plane_both[i]->cd();
+        gPad->SetGridx();
+        gPad->SetGridy();
+        cEffLB_plane_both[i]->SetCanvasSize(1200,1200);
+        hEffLBplanes1D_both[i]->SetTitle((planeName[i]+" both").c_str());
+        hEffLBplanes1D_both[i]->SetStats(0);
+        //hEffLBplanes1D_both[i]->SetLineColor(color[period]);
+        //hEffLBplanes1D_both[i]->SetMarkerColor(color[period]);
+        hEffLBplanes1D_both[i]->SetMarkerStyle(8);
+        hEffLBplanes1D_both[i]->SetMarkerSize(.8);
+        hEffLBplanes1D_both[i]->GetXaxis()->SetTitle("Local board");
+        hEffLBplanes1D_both[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEffLBplanes1D_both[i]->GetXaxis()->CenterTitle(true);
+        hEffLBplanes1D_both[i]->GetYaxis()->CenterTitle(true);
+        hEffLBplanes1D_both[i]->GetYaxis()->SetRangeUser(0,105);
+        hEffLBplanes1D_both[i]->GetXaxis()->SetTitleFont(62);
+        hEffLBplanes1D_both[i]->GetYaxis()->SetTitleFont(62);
+        hEffLBplanes1D_both[i]->GetXaxis()->SetLabelFont(62);
+        hEffLBplanes1D_both[i]->GetYaxis()->SetLabelFont(62);
+        hEffLBplanes1D_both[i]->GetYaxis()->SetTitleOffset(1.1);
+        if (i == 0) {
+            lTot->AddEntry(hEffLBplanes1D_both[0],"LHC23 pass4 skimmed QC1","p");
+        }
+        hEffLBplanes1D_both[i]->Draw("P");
+        lTot->Draw("SAME");
+        cEffLB_plane_both[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_bothPlanes_total_"+planeName[i]+".pdf").c_str());
+        
+        //BP
+        cEffLB_plane_BP[i]->cd();
+        gPad->SetGridx();
+        gPad->SetGridy();
+        cEffLB_plane_BP[i]->SetCanvasSize(1200,1200);
+        hEffLBplanes1D_BP[i]->SetTitle((planeName[i]+" BP").c_str());
+        hEffLBplanes1D_BP[i]->SetStats(0);
+        //hEffLBplanes1D_BP[i]->SetLineColor(color[period]);
+        //hEffLBplanes1D_BP[i]->SetMarkerColor(color[period]);
+        hEffLBplanes1D_BP[i]->SetMarkerStyle(8);
+        hEffLBplanes1D_BP[i]->SetMarkerSize(.8);
+        hEffLBplanes1D_BP[i]->GetXaxis()->SetTitle("Local board");
+        hEffLBplanes1D_BP[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEffLBplanes1D_BP[i]->GetXaxis()->CenterTitle(true);
+        hEffLBplanes1D_BP[i]->GetYaxis()->CenterTitle(true);
+        hEffLBplanes1D_BP[i]->GetYaxis()->SetRangeUser(0,105);
+        hEffLBplanes1D_BP[i]->GetXaxis()->SetTitleFont(62);
+        hEffLBplanes1D_BP[i]->GetYaxis()->SetTitleFont(62);
+        hEffLBplanes1D_BP[i]->GetXaxis()->SetLabelFont(62);
+        hEffLBplanes1D_BP[i]->GetYaxis()->SetLabelFont(62);
+        hEffLBplanes1D_BP[i]->GetYaxis()->SetTitleOffset(1.1);
+        hEffLBplanes1D_BP[i]->Draw("P");
+        lTot->Draw("SAME");
+        cEffLB_plane_BP[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_BP_total_"+planeName[i]+".pdf").c_str());
+
+        //BP
+        cEffLB_plane_NBP[i]->cd();
+        gPad->SetGridx();
+        gPad->SetGridy();
+        cEffLB_plane_NBP[i]->SetCanvasSize(1200,1200);
+        hEffLBplanes1D_NBP[i]->SetTitle((planeName[i]+" BP").c_str());
+        hEffLBplanes1D_NBP[i]->SetStats(0);
+        //hEffLBplanes1D_NBP[i]->SetLineColor(color[period]);
+        //hEffLBplanes1D_NBP[i]->SetMarkerColor(color[period]);
+        hEffLBplanes1D_NBP[i]->SetMarkerStyle(8);
+        hEffLBplanes1D_NBP[i]->SetMarkerSize(.8);
+        hEffLBplanes1D_NBP[i]->GetXaxis()->SetTitle("Local board");
+        hEffLBplanes1D_NBP[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEffLBplanes1D_NBP[i]->GetXaxis()->CenterTitle(true);
+        hEffLBplanes1D_NBP[i]->GetYaxis()->CenterTitle(true);
+        hEffLBplanes1D_NBP[i]->GetYaxis()->SetRangeUser(0,105);
+        hEffLBplanes1D_NBP[i]->GetXaxis()->SetTitleFont(62);
+        hEffLBplanes1D_NBP[i]->GetYaxis()->SetTitleFont(62);
+        hEffLBplanes1D_NBP[i]->GetXaxis()->SetLabelFont(62);
+        hEffLBplanes1D_NBP[i]->GetYaxis()->SetLabelFont(62);
+        hEffLBplanes1D_NBP[i]->GetYaxis()->SetTitleOffset(1.1);
+        hEffLBplanes1D_NBP[i]->Draw("P");
+        lTot->Draw("SAME");
+        cEffLB_plane_NBP[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_NBP_total_"+planeName[i]+".pdf").c_str());   
+    }
+
+    /*cEffLB_plane_both->Divide(2,2);
     cEffLB_plane_both->cd(1);
     hEffLBplanes1D_both[0]->SetStats(0);
     hEffLBplanes1D_both[0]->Draw("P");
@@ -293,7 +414,7 @@ void calculateEfficiency() {
     hEffLBplanes1D_both[2]->Draw("P");
     cEffLB_plane_both->cd(4);
     hEffLBplanes1D_both[1]->SetStats(0);
-    hEffLBplanes1D_both[3]->Draw("P");
+    hEffLBplanes1D_both[3]->Draw("P");*/
 
     TCanvas *cEffRPC_plane_both = new TCanvas();
     cEffRPC_plane_both->Divide(2,2);
@@ -462,7 +583,7 @@ void calculateEfficiency() {
         hEffPeriodLB_planes[i]->GetXaxis()->SetLabelFont(62);
         hEffPeriodLB_planes[i]->GetYaxis()->SetLabelFont(62);
         hEffPeriodLB_planes[i]->GetYaxis()->SetTitleOffset(1.1);
-        cEffLBPeriod[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_bothPlanes_periods_"+planeName[i]+".png").c_str());
+        cEffLBPeriod[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_bothPlanes_periods_"+planeName[i]+".pdf").c_str());
     }
 
     bool uploadToCCDB = false; //Only upload to CCDB if this is true
@@ -522,8 +643,7 @@ void calculateEfficiency() {
         //Debug, test of getEfficiency function
         if (debug) {
             cout << "Test get efficiency: " << effMap.getEfficiency(68,5,1,o2::mid::ChamberEfficiency::EffType::BothPlanes);
-            //det ID 68 col 5 line 1 LB 220        
-            getEfficiency(int deId, int columnId, int lineId, EffType type) const
+            //det ID 68 col 5 line 1 LB 220
         }
 
         //Save in CCDB
