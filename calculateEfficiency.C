@@ -485,10 +485,15 @@ void calculateEfficiency() {
     //THStack for all planes in all periods (LB 1->936)
     THStack *hEffPeriodLB = new THStack();
     //Array of THStacks for the four planes (LB 1->234)
-    THStack *hEffPeriodLB_planes[4];
+    THStack *hEffPeriodLB_planes_both[4];
+    THStack *hEffPeriodLB_planes_BP[4];
+    THStack *hEffPeriodLB_planes_NBP[4];
     //Matrix of histos: 4 elements because of 4 periods and 4 planes per period
-    TH1F *hEffLB_period_planes[4][4];
+    TH1F *hEffLB_period_planes_both[4][4]; //both
+    TH1F *hEffLB_period_planes_BP[4][4]; //BP
+    TH1F *hEffLB_period_planes_NBP[4][4]; //NBP
 
+    //Legend of the different periods
     TLegend *lPeriods = new TLegend(0.720,0.195,0.885,0.357,"","rNDC");
     lPeriods->SetFillStyle(0); //Transparent background
     lPeriods->SetTextFont(62); //Bold legend
@@ -497,13 +502,17 @@ void calculateEfficiency() {
     int color[4] = {2,3,4,6};
 
     for (int i = 0; i < 4; i++) {
-        hEffPeriodLB_planes[i] = new THStack();
+        hEffPeriodLB_planes_both[i] = new THStack();
+        hEffPeriodLB_planes_BP[i] = new THStack();
+        hEffPeriodLB_planes_NBP[i] = new THStack();
     }
 
     for (int period = 0; period < 4; period++) {
         
         for (int j = 0; j < 4; j++) {
-            hEffLB_period_planes[period][j] = new TH1F(("hEffLB_period_plane_"+to_string(j)+periods[period]).c_str(),("hEffLB_period_plane_"+to_string(j)+periods[period]).c_str(),234,-0.5,235.5);
+            hEffLB_period_planes_both[period][j] = new TH1F(("hEffLB_period_plane_both "+to_string(j)+periods[period]).c_str(),("hEffLB_period_plane_both "+to_string(j)+periods[period]).c_str(),234,-0.5,235.5);
+            hEffLB_period_planes_BP[period][j] = new TH1F(("hEffLB_period_plane_BP "+to_string(j)+periods[period]).c_str(),("hEffLB_period_plane_BP "+to_string(j)+periods[period]).c_str(),234,-0.5,235.5);
+            hEffLB_period_planes_NBP[period][j] = new TH1F(("hEffLB_period_plane_NBP "+to_string(j)+periods[period]).c_str(),("hEffLB_period_plane_NBP "+to_string(j)+periods[period]).c_str(),234,-0.5,235.5);
         }
     
         fileName[period] = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23"+periods[period]+".root";
@@ -552,36 +561,65 @@ void calculateEfficiency() {
 
                 //Efficiency per plane
                 if (i <= 234) {
-                    hEffLB_period_planes[period][0]->SetBinContent(i,effBothLB);
-                    hEffLB_period_planes[period][0]->SetBinError(i,errEffBothLB);
+                    hEffLB_period_planes_both[period][0]->SetBinContent(i,effBothLB);
+                    hEffLB_period_planes_both[period][0]->SetBinError(i,errEffBothLB);
+                    hEffLB_period_planes_BP[period][0]->SetBinContent(i,effBPLB);
+                    hEffLB_period_planes_BP[period][0]->SetBinError(i,errEffBPLB);
+                    hEffLB_period_planes_NBP[period][0]->SetBinContent(i,effBPLB);
+                    hEffLB_period_planes_NBP[period][0]->SetBinError(i,errEffBPLB);
                 }
                 else if (i >= 235 && i <= 468) {
-                    hEffLB_period_planes[period][1]->SetBinContent(i-234,effBothLB);
-                    hEffLB_period_planes[period][1]->SetBinError(i-234,errEffBothLB);
+                    hEffLB_period_planes_both[period][1]->SetBinContent(i-234,effBothLB);
+                    hEffLB_period_planes_both[period][1]->SetBinError(i-234,errEffBothLB);
+                    hEffLB_period_planes_BP[period][1]->SetBinContent(i-234,effBPLB);
+                    hEffLB_period_planes_BP[period][1]->SetBinError(i-234,errEffBPLB);
+                    hEffLB_period_planes_NBP[period][1]->SetBinContent(i-234,effNBPLB);
+                    hEffLB_period_planes_NBP[period][1]->SetBinError(i-234,errEffNBPLB);
                 }
                 else if (i>= 469 && i <= 702) {
-                    hEffLB_period_planes[period][2]->SetBinContent(i-468,effBothLB);
-                    hEffLB_period_planes[period][2]->SetBinError(i-468,errEffBothLB);
+                    hEffLB_period_planes_both[period][2]->SetBinContent(i-468,effBothLB);
+                    hEffLB_period_planes_both[period][2]->SetBinError(i-468,errEffBothLB);
+                    hEffLB_period_planes_BP[period][2]->SetBinContent(i-468,effBPLB);
+                    hEffLB_period_planes_BP[period][2]->SetBinError(i-468,errEffBPLB);
+                    hEffLB_period_planes_NBP[period][2]->SetBinContent(i-468,effNBPLB);
+                    hEffLB_period_planes_NBP[period][2]->SetBinError(i-468,errEffNBPLB);
                 }
 
                 else {
-                    hEffLB_period_planes[period][3]->SetBinContent(i-702,effBothLB);
-                    hEffLB_period_planes[period][3]->SetBinError(i-702,errEffBothLB);
+                    hEffLB_period_planes_both[period][3]->SetBinContent(i-702,effBothLB);
+                    hEffLB_period_planes_both[period][3]->SetBinError(i-702,errEffBothLB);
+                    hEffLB_period_planes_BP[period][3]->SetBinContent(i-702,effBPLB);
+                    hEffLB_period_planes_BP[period][3]->SetBinError(i-702,errEffBPLB);
+                    hEffLB_period_planes_NBP[period][3]->SetBinContent(i-702,effNBPLB);
+                    hEffLB_period_planes_NBP[period][3]->SetBinError(i-702,errEffNBPLB);
                 }
             }
         }
 
         //Add histo to THStack and set marker color/size/style
         for (int j = 0; j < 4; j++) {
-            hEffLB_period_planes[period][j]->SetLineColor(color[period]);
-            hEffLB_period_planes[period][j]->SetMarkerColor(color[period]);
-            hEffLB_period_planes[period][j]->SetMarkerStyle(8);
-            hEffLB_period_planes[period][j]->SetMarkerSize(.8);
-            hEffPeriodLB_planes[j]->Add(hEffLB_period_planes[period][j]);
+            //Both planes
+            hEffLB_period_planes_both[period][j]->SetLineColor(color[period]);
+            hEffLB_period_planes_both[period][j]->SetMarkerColor(color[period]);
+            hEffLB_period_planes_both[period][j]->SetMarkerStyle(8);
+            hEffLB_period_planes_both[period][j]->SetMarkerSize(.8);
+            hEffPeriodLB_planes_both[j]->Add(hEffLB_period_planes_both[period][j]);
+            //BP
+            hEffLB_period_planes_BP[period][j]->SetLineColor(color[period]);
+            hEffLB_period_planes_BP[period][j]->SetMarkerColor(color[period]);
+            hEffLB_period_planes_BP[period][j]->SetMarkerStyle(8);
+            hEffLB_period_planes_BP[period][j]->SetMarkerSize(.8);
+            hEffPeriodLB_planes_BP[j]->Add(hEffLB_period_planes_BP[period][j]);
+            //NBP
+            hEffLB_period_planes_NBP[period][j]->SetLineColor(color[period]);
+            hEffLB_period_planes_NBP[period][j]->SetMarkerColor(color[period]);
+            hEffLB_period_planes_NBP[period][j]->SetMarkerStyle(8);
+            hEffLB_period_planes_NBP[period][j]->SetMarkerSize(.8);
+            hEffPeriodLB_planes_NBP[j]->Add(hEffLB_period_planes_NBP[period][j]);
         }
 
         //Add Legend entry taking the MT11 historgam (taking any other would work, this is just randomly chosed)
-        lPeriods->AddEntry(hEffLB_period_planes[period][0],("LHC23_"+periods[period]).c_str(),"p");
+        lPeriods->AddEntry(hEffLB_period_planes_both[period][0],("LHC23_"+periods[period]).c_str(),"p");
 
         v_hEffLB_both[period]->SetLineColor(period+1);
         hEffPeriodLB->Add(v_hEffLB_both[period]);
@@ -593,27 +631,71 @@ void calculateEfficiency() {
     hEffPeriodLB->Draw("nostack");
 
     //4 canvases, one per plane
-    TCanvas *cEffLBPeriod[4];
+    TCanvas *cEffLBPeriod_both[4];
+    TCanvas *cEffLBPeriod_BP[4];
+    TCanvas *cEffLBPeriod_NBP[4];
 
     for (int i = 0; i < 4; i++) {
-        cEffLBPeriod[i] =  new TCanvas();
-        cEffLBPeriod[i]->cd();
+        cEffLBPeriod_both[i] =  new TCanvas();
+        cEffLBPeriod_BP[i] =  new TCanvas();
+        cEffLBPeriod_NBP[i] =  new TCanvas();
+        
+        //Both
+        cEffLBPeriod_both[i]->cd();
         gPad->SetGridx();
         gPad->SetGridy();
-        cEffLBPeriod[i]->SetCanvasSize(1200,1200);
-        hEffPeriodLB_planes[i]->SetTitle(planeName[i].c_str());
-        hEffPeriodLB_planes[i]->Draw("nostack");
+        cEffLBPeriod_both[i]->SetCanvasSize(1200,1200);
+        hEffPeriodLB_planes_both[i]->SetTitle((planeName[i]+" both").c_str());
+        hEffPeriodLB_planes_both[i]->Draw("nostack");
         lPeriods->Draw("SAME");
-        hEffPeriodLB_planes[i]->GetXaxis()->SetTitle("Local board");
-        hEffPeriodLB_planes[i]->GetYaxis()->SetTitle("Efficiency [%]");
-        hEffPeriodLB_planes[i]->GetXaxis()->CenterTitle(true);
-        hEffPeriodLB_planes[i]->GetYaxis()->CenterTitle(true);
-        hEffPeriodLB_planes[i]->GetXaxis()->SetTitleFont(62);
-        hEffPeriodLB_planes[i]->GetYaxis()->SetTitleFont(62);
-        hEffPeriodLB_planes[i]->GetXaxis()->SetLabelFont(62);
-        hEffPeriodLB_planes[i]->GetYaxis()->SetLabelFont(62);
-        hEffPeriodLB_planes[i]->GetYaxis()->SetTitleOffset(1.1);
-        cEffLBPeriod[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_bothPlanes_periods_"+planeName[i]+".pdf").c_str());
+        hEffPeriodLB_planes_both[i]->GetXaxis()->SetTitle("Local board");
+        hEffPeriodLB_planes_both[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEffPeriodLB_planes_both[i]->GetXaxis()->CenterTitle(true);
+        hEffPeriodLB_planes_both[i]->GetYaxis()->CenterTitle(true);
+        hEffPeriodLB_planes_both[i]->GetXaxis()->SetTitleFont(62);
+        hEffPeriodLB_planes_both[i]->GetYaxis()->SetTitleFont(62);
+        hEffPeriodLB_planes_both[i]->GetXaxis()->SetLabelFont(62);
+        hEffPeriodLB_planes_both[i]->GetYaxis()->SetLabelFont(62);
+        hEffPeriodLB_planes_both[i]->GetYaxis()->SetTitleOffset(1.1);
+        cEffLBPeriod_both[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_bothPlanes_periods_"+planeName[i]+".pdf").c_str());
+    
+        //BP
+        cEffLBPeriod_BP[i]->cd();
+        gPad->SetGridx();
+        gPad->SetGridy();
+        cEffLBPeriod_BP[i]->SetCanvasSize(1200,1200);
+        hEffPeriodLB_planes_BP[i]->SetTitle((planeName[i]+" BP").c_str());
+        hEffPeriodLB_planes_BP[i]->Draw("nostack");
+        lPeriods->Draw("SAME");
+        hEffPeriodLB_planes_BP[i]->GetXaxis()->SetTitle("Local board");
+        hEffPeriodLB_planes_BP[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEffPeriodLB_planes_BP[i]->GetXaxis()->CenterTitle(true);
+        hEffPeriodLB_planes_BP[i]->GetYaxis()->CenterTitle(true);
+        hEffPeriodLB_planes_BP[i]->GetXaxis()->SetTitleFont(62);
+        hEffPeriodLB_planes_BP[i]->GetYaxis()->SetTitleFont(62);
+        hEffPeriodLB_planes_BP[i]->GetXaxis()->SetLabelFont(62);
+        hEffPeriodLB_planes_BP[i]->GetYaxis()->SetLabelFont(62);
+        hEffPeriodLB_planes_BP[i]->GetYaxis()->SetTitleOffset(1.1);
+        cEffLBPeriod_BP[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_BP_periods_"+planeName[i]+".pdf").c_str());
+
+        //NBP
+        cEffLBPeriod_NBP[i]->cd();
+        gPad->SetGridx();
+        gPad->SetGridy();
+        cEffLBPeriod_NBP[i]->SetCanvasSize(1200,1200);
+        hEffPeriodLB_planes_NBP[i]->SetTitle((planeName[i]+" NBP").c_str());
+        hEffPeriodLB_planes_NBP[i]->Draw("nostack");
+        lPeriods->Draw("SAME");
+        hEffPeriodLB_planes_NBP[i]->GetXaxis()->SetTitle("Local board");
+        hEffPeriodLB_planes_NBP[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEffPeriodLB_planes_NBP[i]->GetXaxis()->CenterTitle(true);
+        hEffPeriodLB_planes_NBP[i]->GetYaxis()->CenterTitle(true);
+        hEffPeriodLB_planes_NBP[i]->GetXaxis()->SetTitleFont(62);
+        hEffPeriodLB_planes_NBP[i]->GetYaxis()->SetTitleFont(62);
+        hEffPeriodLB_planes_NBP[i]->GetXaxis()->SetLabelFont(62);
+        hEffPeriodLB_planes_NBP[i]->GetYaxis()->SetLabelFont(62);
+        hEffPeriodLB_planes_NBP[i]->GetYaxis()->SetTitleOffset(1.1);
+        cEffLBPeriod_NBP[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_NBP_periods_"+planeName[i]+".pdf").c_str());
     }
 
     bool uploadToCCDB = false; //Only upload to CCDB if this is true
