@@ -45,17 +45,7 @@ void effByRun() {
 
     vector<vector<float>> vEffBothLB_runs, vEffBPLB_runs, vEffNBPLB_runs;
     vector<vector<float>> vErrEffBothLB_runs, vErrEffBPLB_runs, vErrEffNBPLB_runs;
-
-    /*TH1F *hEffLBplanes1D_both[4]; //4 1D histograms for LB (one per plane eff on both planes)
-    TH1F *hEffLBplanes1D_BP[4]; //4 1D histograms for LB (one per plane eff on BP)
-    TH1F *hEffLBplanes1D_NBP[4]; //4 1D histograms for LB (one per plane eff on NBP)
-    //Initialize them
-    for (int i = 0; i < 4; i++) {
-        hEffLBplanes1D_both[i] = new TH1F(("LB efficiency both "+planeName[i]).c_str(),("LB efficiency both "+planeName[i]).c_str(),234,0.5,234.5);
-        hEffLBplanes1D_BP[i] = new TH1F(("LB efficiency BP "+planeName[i]).c_str(),("LB efficiency BP "+planeName[i]).c_str(),234,0.5,234.5);
-        hEffLBplanes1D_NBP[i] = new TH1F(("LB efficiency NBP "+planeName[i]).c_str(),("LB efficiency NBP "+planeName[i]).c_str(),234,0.5,234.5);
-    }*/
-
+    
     //Plane name
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
@@ -110,74 +100,36 @@ void effByRun() {
                 errEffBPLB = TMath::Sqrt(effBPLB*(100-effBPLB)/hTotLB->GetBinContent(i));
                 errEffNBPLB = TMath::Sqrt(effNBPLB*(100-effNBPLB)/hTotLB->GetBinContent(i));
 
+                //Fill vector for efficiency per LB in the run
                 vEffBothLB.push_back(effBothLB);
                 vEffBPLB.push_back(effBPLB);
                 vEffNBPLB.push_back(effNBPLB);
                 
+                //Fill vector for error on efficiency per LB in the run
                 vErrEffBothLB.push_back(errEffBothLB);
                 vErrEffBPLB.push_back(errEffBPLB);
                 vErrEffNBPLB.push_back(errEffNBPLB);
-
-                /*hEffLB_both->Fill(i,effBothLB);
-                hEffLB_both->SetBinError(i,errEffBothLB);
-                hEffLB_BP->Fill(i,effBPLB);
-                hEffLB_BP->SetBinError(i,errEffBPLB);
-                hEffLB_NBP->Fill(i,effNBPLB);
-                hEffLB_NBP->SetBinError(i,errEffNBPLB);
-
-                if (i <= 234) {
-                    hEffLBplanes1D_both[0]->SetBinContent(i,effBothLB);
-                    hEffLBplanes1D_both[0]->SetBinError(i,errEffBothLB);
-                    hEffLBplanes1D_BP[0]->SetBinContent(i,effBPLB);
-                    hEffLBplanes1D_BP[0]->SetBinError(i,errEffBPLB);
-                    hEffLBplanes1D_NBP[0]->SetBinContent(i,effNBPLB);
-                    hEffLBplanes1D_NBP[0]->SetBinError(i,errEffNBPLB);
-                }
-                else if (i >= 235 && i <= 468) {
-                    hEffLBplanes1D_both[1]->SetBinContent(i-234,effBothLB);
-                    hEffLBplanes1D_both[1]->SetBinError(i-234,errEffBothLB);
-                    hEffLBplanes1D_BP[1]->SetBinContent(i-234,effBPLB);
-                    hEffLBplanes1D_BP[1]->SetBinError(i-234,errEffBPLB);
-                    hEffLBplanes1D_NBP[1]->SetBinContent(i-234,effNBPLB);
-                    hEffLBplanes1D_NBP[1]->SetBinError(i-234,errEffNBPLB);
-                }
-                else if (i>= 469 && i <= 702) {
-                    hEffLBplanes1D_both[2]->SetBinContent(i-468,effBothLB);
-                    hEffLBplanes1D_both[2]->SetBinError(i-468,errEffBothLB);
-                    hEffLBplanes1D_BP[2]->SetBinContent(i-468,effBPLB);
-                    hEffLBplanes1D_BP[2]->SetBinError(i-468,errEffBPLB);
-                    hEffLBplanes1D_NBP[2]->SetBinContent(i-468,effNBPLB);
-                    hEffLBplanes1D_NBP[2]->SetBinError(i-468,errEffNBPLB);
-                }
-
-                else {
-                    hEffLBplanes1D_both[3]->SetBinContent(i-702,effBothLB);
-                    hEffLBplanes1D_both[3]->SetBinError(i-702,errEffBothLB);
-                    hEffLBplanes1D_BP[3]->SetBinContent(i-702,effBPLB);
-                    hEffLBplanes1D_BP[3]->SetBinError(i-702,errEffBPLB);
-                    hEffLBplanes1D_NBP[3]->SetBinContent(i-702,effNBPLB);
-                    hEffLBplanes1D_NBP[3]->SetBinError(i-702,errEffNBPLB);
-                }*/
             }
         }
 
+        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run)
         vEffBothLB_runs.push_back(vEffBothLB);
         vEffBPLB_runs.push_back(vEffBPLB);
         vEffNBPLB_runs.push_back(vEffNBPLB);
-         
+        
+        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run)
         vErrEffBothLB_runs.push_back(vErrEffBothLB);
         vErrEffBPLB_runs.push_back(vErrEffBPLB); 
         vErrEffNBPLB_runs.push_back(vErrEffNBPLB);
 
+        //Clear vector of eff for LB in a run
         vEffBothLB.clear();
         vEffBPLB.clear();
         vEffNBPLB.clear();
-            
+        //Clear vector of error on eff for LB in a run
         vErrEffBothLB.clear();
         vErrEffBPLB.clear();
         vErrEffNBPLB.clear();
-
-        //cout << runFileName << endl;
 
     } //End of loop on all runs
 
