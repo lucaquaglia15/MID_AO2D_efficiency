@@ -69,6 +69,11 @@ void effByRun() {
         vRun.push_back(run);
     }
 
+    //Output file for the merge of root files if the number of tracks reaches the desired goal, file is saved in the merged_files directory
+    //of the chosen period - to be understood if this is really what we want but for now we keep it like this
+    ofstream hMergeRuns;
+    hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat");
+
     //General string name
     string fileName = "AnalysisResults.root";
 
@@ -93,7 +98,16 @@ void effByRun() {
         cumulativeTracks += tracks;
         cout << "Run number " << vRun.at(iRun) << " tot tracks in all LB " << tracks << " cumulative " << cumulativeTracks << endl;
 
-        if (cumulativeTracks >= trackGoal) {
+        if (cumulativeTracks < trackGoal) { //If total track number is below the target -> Fill the file with the path of each AnalysisResults.root from each run
+            hMergeRuns << runFileName << "\n";
+        }
+
+        //Total track number greater than goal 
+            // set the cumulative number of tracks to 0
+            // merge the root files calling hadd.cpp
+            // empty the runs.dat file
+            // save the merged object inside a folder
+        else if (cumulativeTracks >= trackGoal) {
             cout << "Track goal reached!" << endl;
             cumulativeTracks = 0;
         }
