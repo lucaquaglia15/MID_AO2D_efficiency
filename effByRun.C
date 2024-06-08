@@ -1,5 +1,6 @@
 #include "TH1F.h"
 #include "TH2F.h"
+//#include "TROOT.h"
 #include "Riostream.h"
 #include "TGraphErrors.h"
 #include "TCanvas.h"
@@ -39,6 +40,8 @@ void effByRun() {
     int nBinsRPC = 72; //Number of RPCs
     int nBinsBoard = 936; //Number of LBs
 
+    bool open = false;
+
     float effBothLB = 0, effBPLB = 0, effNBPLB =0;
     float errEffBothLB = 0, errEffBPLB = 0, errEffNBPLB = 0;
 
@@ -69,13 +72,17 @@ void effByRun() {
         vRun.push_back(run);
     }
 
-    //Output file for the merge of root files if the number of tracks reaches the desired goal, file is saved in the merged_files directory
-    //of the chosen period - to be understood if this is really what we want but for now we keep it like this
+    //Output file for the merge of root files if the number of tracks reaches the desired goal
     ofstream hMergeRuns;
-    hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat");
 
     //General string name
     string fileName = "AnalysisResults.root";
+
+    //Load hadd.C macro to merge the root files from different runs
+    gROOT->ProcessLine(".L /home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/hadd.C");
+
+    //Test - to keep track of the number of merges
+    int mergeCounter = 0;
 
     //Loop on all runs
     for (unsigned int iRun = 0; iRun < vRun.size(); iRun++) {
@@ -99,17 +106,35 @@ void effByRun() {
         cout << "Run number " << vRun.at(iRun) << " tot tracks in all LB " << tracks << " cumulative " << cumulativeTracks << endl;
 
         if (cumulativeTracks < trackGoal) { //If total track number is below the target -> Fill the file with the path of each AnalysisResults.root from each run
+            //Open the output file only if it has not been opened (i.e. open == false)
+            //meaning that it's the first run to be analyzed
+            if (!open) {
+                hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat");
+                open = true;
+            }
+            
             hMergeRuns << runFileName << "\n";
         }
 
         //Total track number greater than goal 
+            // write to file the last run which got above the track goal
+            // increase the number of merges
             // set the cumulative number of tracks to 0
             // merge the root files calling hadd.cpp
-            // empty the runs.dat file
+            // empty the runs.dat file (close the file and set the bool "open to false")
             // save the merged object inside a folder
         else if (cumulativeTracks >= trackGoal) {
             cout << "Track goal reached!" << endl;
+            hMergeRuns << runFileName << "\n";
+            mergeCounter++;
             cumulativeTracks = 0;
+            //Test - create a sub-folder inside the merged_files directory
+            gSystem->mkdir((runPath+"/"+to_string(mergeCounter)).c_str());
+            //Execute the hadd code (already loaded before the loop)
+            string mergeFiles = "hadd("+runPath+"/"+to_string(mergeCounter)+"/AnalysisResults.root)";
+            gROOT->ProcessLine(mergeFiles.c_str());
+            open = false;
+            hMergeRuns.close();
         }
 
         for (int i = 1; i <= nBinsBoard; i++) {
@@ -157,6 +182,9 @@ void effByRun() {
         vErrEffNBPLB.clear();
 
     } //End of loop on all runs
+
+    //Close .dat file of runs to be merged
+    hMergeRuns.close();
 
     //cout << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
 
