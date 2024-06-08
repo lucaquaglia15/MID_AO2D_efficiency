@@ -30,6 +30,8 @@
 using namespace std;
 
 bool debug = false;
+const int trackGoal = 5e+6;
+int tracks = 0, cumulativeTracks = 0;
 
 void effByRun() {
 
@@ -45,7 +47,7 @@ void effByRun() {
 
     vector<vector<float>> vEffBothLB_runs, vEffBPLB_runs, vEffNBPLB_runs;
     vector<vector<float>> vErrEffBothLB_runs, vErrEffBPLB_runs, vErrEffNBPLB_runs;
-    
+
     //Plane name
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
@@ -87,8 +89,17 @@ void effByRun() {
         TH1F *hFiredNBPLB = (TH1F*)d->Get("nFiredNBPperBoard");
         TH1F *hTotLB = (TH1F*)d->Get("nTotperBoard");
 
+        tracks = hTotLB->GetEntries();
+        cumulativeTracks += tracks;
+        cout << "Run number " << vRun.at(iRun) << " tot tracks in all LB " << tracks << " cumulative " << cumulativeTracks << endl;
+
+        if (cumulativeTracks >= trackGoal) {
+            cout << "Track goal reached!" << endl;
+            cumulativeTracks = 0;
+        }
+
         for (int i = 1; i <= nBinsBoard; i++) {
-            cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
+            //cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
 
             if (hTotLB->GetBinContent(i) != 0) {
 
@@ -133,19 +144,24 @@ void effByRun() {
 
     } //End of loop on all runs
 
-    cout << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
+    //cout << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
 
     //First [xx] is the run number in the period and the second [xx] is the LB number
     TGraphErrors *gExample = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[0][30],NULL,&vErrEffBPLB_runs[0][30]);
     TGraphErrors *gExample2 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[22][30],NULL,&vErrEffBPLB_runs[22][30]);
+    TGraphErrors *gExample3 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[30][30],NULL,&vErrEffBPLB_runs[30][30]);
+
     gExample->SetMarkerStyle(8);
     gExample2->SetMarkerColor(kGreen);
     gExample2->SetMarkerStyle(8);
     gExample2->SetMarkerColor(kRed);
+    gExample3->SetMarkerStyle(8);
+    gExample3->SetMarkerColor(kGreen);
 
     TMultiGraph *m = new TMultiGraph();
     m->Add(gExample);
     m->Add(gExample2);
+    m->Add(gExample3);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
