@@ -37,7 +37,7 @@ TFile *Target;
 void MergeRootfile( TDirectory *target, TList *sourcelist );
 
 
-void hadd() {
+void hadd(const string mergedfile) {
     // Prepare the files to me merged
     if(gSystem->AccessPathName("hsimple1.root")) {
     gSystem->CopyFile("hsimple.root", "hsimple1.root");
@@ -49,8 +49,8 @@ void hadd() {
     // root > .L hadd.C
     // root > hadd()
 
-    const char* filename_list = "caenHV.dat";
-    const char* mergedfile = "Scan000775_HV1_CAEN.root"; 
+    const char* filename_list = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat";
+    //const char* mergedfile = "Scan000775_HV1_CAEN.root"; 
 
     string line;
     ifstream myfile;
@@ -61,7 +61,7 @@ void hadd() {
     	exit(EXIT_FAILURE);
     }
 
-    Target = TFile::Open( mergedfile , "RECREATE" );
+    Target = TFile::Open( mergedfile.c_str() , "RECREATE" );
     FileList = new TList();
 
     cout << "File to merge: \n";
