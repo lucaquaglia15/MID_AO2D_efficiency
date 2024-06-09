@@ -19,6 +19,7 @@
 #include <stdlib.h> 
 #include <fstream>
 #include <string>
+#include <filesystem>
 #include "TKey.h"
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
@@ -38,6 +39,19 @@ int cumulativeTracks = 0;
 int nBinsPlane = 4; //Number of planes
 int nBinsRPC = 72; //Number of RPCs
 int nBinsBoard = 936; //Number of LBs
+
+//Function to delete folders with data from multiple runs merge -> called everytime the code is launched to clean up in case we change
+//target number of tracks, hence number of merges
+void clearFolders(string folder) {
+
+    string extension = "mergedRuns";
+
+    for (auto const& dir_entry :std::filesystem::directory_iterator{folder}) { //Loop through all folders in the merged_files folder
+        if ((string(dir_entry.path())).find(extension) != string::npos) { //If the given folder contains the extension in its name
+            filesystem::remove_all((string(dir_entry.path())).c_str()); //Delete folder to be ready for new iteration 
+        }
+    }
+} //End of clearFolders
 
 //Function to calculate efficiency -> defined as a function not to write over and over the for loop
 void calculateEfficiencyByRun(string runFolder) {
@@ -165,6 +179,9 @@ void effByRun() { //Main function
     //Path for the .txt file of the run list of the period
     string runNumbers = globalPath+"run_list.txt"; 
 
+    //Call function to clear all the folders with the data merged from multiple runs
+    clearFolders(runPath);
+
     //Open txt file of runs
     ifstream hRun;
     hRun.open(runNumbers.c_str());
@@ -237,10 +254,10 @@ void effByRun() { //Main function
             hMergeRuns.close();
             open = false;
             //Test - create a sub-folder inside the merged_files directory
-            gSystem->mkdir((runPath+"/"+to_string(mergeCounter)).c_str());
+            gSystem->mkdir((runPath+"mergedRuns"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
-            string mergeFilesForHadd = '"'+runPath+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
-            string mergeFiles = runPath+to_string(mergeCounter)+"/AnalysisResults.root";
+            string mergeFilesForHadd = '"'+runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            string mergeFiles = runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root";
             cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
             gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
             calculateEfficiencyByRun(mergeFiles);
@@ -256,9 +273,9 @@ void effByRun() { //Main function
             hMergeRuns.close();
             open = false; //no need to set it to false but for redudancy we do it
             //Test - create a sub-folder inside the merged_files directory
-            gSystem->mkdir((runPath+"/"+to_string(mergeCounter)).c_str());
+            gSystem->mkdir((runPath+"mergedRuns"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
-            string mergeFiles = '"'+runPath+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            string mergeFiles = '"'+runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
             //cout << mergeFiles << endl;
             gROOT->ProcessLine(Form("hadd(%s)",mergeFiles.c_str()));
         }
