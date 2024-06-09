@@ -120,6 +120,7 @@ void effByRun() {
             // write to file the last run which got above the track goal
             // increase the number of merges
             // set the cumulative number of tracks to 0
+            // close the output .dat file
             // merge the root files calling hadd.cpp
             // empty the runs.dat file (close the file and set the bool "open to false")
             // save the merged object inside a folder
@@ -128,13 +129,14 @@ void effByRun() {
             hMergeRuns << runFileName << "\n";
             mergeCounter++;
             cumulativeTracks = 0;
+            hMergeRuns.close();
             //Test - create a sub-folder inside the merged_files directory
             gSystem->mkdir((runPath+"/"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
-            string mergeFiles = "hadd("+runPath+"/"+to_string(mergeCounter)+"/AnalysisResults.root)";
-            gROOT->ProcessLine(mergeFiles.c_str());
+            string mergeFiles = '"'+runPath+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            //cout << mergeFiles << endl;
+            gROOT->ProcessLine(Form("hadd(%s)",mergeFiles.c_str()));
             open = false;
-            hMergeRuns.close();
         }
 
         for (int i = 1; i <= nBinsBoard; i++) {
