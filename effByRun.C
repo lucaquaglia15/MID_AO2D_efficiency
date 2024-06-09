@@ -18,6 +18,7 @@
 #include <vector>
 #include <stdlib.h> 
 #include <fstream>
+#include <string>
 #include "TKey.h"
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
@@ -33,6 +34,106 @@ using namespace std;
 bool debug = false;
 const int trackGoal = 5e+6;
 int tracks = 0, cumulativeTracks = 0;
+
+//Function to calculate efficiency -> defined as a function not to write over and over the for loop
+void calculateEfficiencyByRun(string runFolder) {
+
+    bool enablePrint = false; //To enable eff printout
+    
+    TFile *fIn = new TFile(runFolder.c_str(),"READ"); //Open the merged files from several runs
+
+    TDirectoryFile *d = (TDirectoryFile*)fIn->Get("mid-efficiency");
+
+    TH1F *hFiredBothPlanesLB = (TH1F*)d->Get("nFiredBothperBoard");
+    TH1F *hFiredBPLB = (TH1F*)d->Get("nFiredBPperBoard");
+    TH1F *hFiredNBPLB = (TH1F*)d->Get("nFiredNBPperBoard");
+    TH1F *hTotLB = (TH1F*)d->Get("nTotperBoard");
+
+    //To calculate efficiency and error on efficiency
+    float effBothLB = 0, effBPLB = 0, effNBPLB =0;
+    float errEffBothLB = 0, errEffBPLB = 0, errEffNBPLB = 0;
+
+    //Histograms to visualize easily the efficiency distribution
+    TH1F *hEffLB_both = new TH1F("hEffLB_both","hEffLB_both",220,0.,110.);
+    TH1F *hEffLB_BP = new TH1F("hEffLB_BP","hEffLB_BP",220,0.,110.);
+    TH1F *hEffLB_NBP = new TH1F("hEffLB_NBP","hEffLB_NBP",220,0.,110.);
+    //Histograms to visualize easily the error on efficiency distribution
+    TH1F *hErrEffLB_both = new TH1F("hErrEffLB_both","hErrEffLB_both",200,0.,10.);
+    TH1F *hErrEffLB_BP = new TH1F("hErrEffLB_BP","hErrEffLB_BP",200,0.,10.);
+    TH1F *hErrEffLB_NBP = new TH1F("hErrEffLB_NBP","hErrEffLB_NBP",200,0.,10.);
+
+    //Loop through Local Boards
+    for (int i = 1; i <= 936; i++) {
+        //cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
+
+        if (hTotLB->GetBinContent(i) != 0) {
+
+            effBothLB = (hFiredBothPlanesLB->GetBinContent(i)/hTotLB->GetBinContent(i))*100;
+            effBPLB = (hFiredBPLB->GetBinContent(i)/hTotLB->GetBinContent(i))*100;
+            effNBPLB = (hFiredNBPLB->GetBinContent(i)/hTotLB->GetBinContent(i))*100;
+
+            errEffBothLB = TMath::Sqrt(effBothLB*(100-effBothLB)/hTotLB->GetBinContent(i));
+            errEffBPLB = TMath::Sqrt(effBPLB*(100-effBPLB)/hTotLB->GetBinContent(i));
+            errEffNBPLB = TMath::Sqrt(effNBPLB*(100-effNBPLB)/hTotLB->GetBinContent(i));
+
+            if (enablePrint) {
+                cout << "LB " << i+1 << endl;
+                cout << "Eff both " << effBothLB << " +- " << errEffBothLB << endl; 
+                cout << "Eff BP " << effBPLB << " +- " << errEffBPLB << endl; 
+                cout << "Eff NBP " << effNBPLB << " +- " << errEffNBPLB << endl; 
+            }
+
+            hEffLB_both->Fill(effBothLB); 
+            hEffLB_BP->Fill(effBPLB); 
+            hEffLB_NBP->Fill(effNBPLB); 
+
+            hErrEffLB_both->Fill(errEffBothLB); 
+            hErrEffLB_BP->Fill(errEffBPLB); 
+            hErrEffLB_NBP->Fill(errEffNBPLB); 
+        }
+    }
+
+    //Eff on both planes
+    TCanvas *cEffLB_both = new TCanvas();
+    cEffLB_both->cd();
+    hEffLB_both->Draw("HISTO");
+    //Eff on BP
+    TCanvas *cEffLB_BP = new TCanvas();
+    cEffLB_BP->cd();
+    hEffLB_BP->Draw("HISTO");
+    //Eff on NBP
+    TCanvas *cEffLB_NBP = new TCanvas();
+    cEffLB_NBP->cd();
+    hEffLB_NBP->Draw("HISTO");
+    //Err on Eff on both planes
+    TCanvas *cErrEffLB_both = new TCanvas();
+    cErrEffLB_both->cd();
+    hErrEffLB_both->Draw("HISTO");
+    //Error on Eff on BP
+    TCanvas *cErrEffLB_BP = new TCanvas();
+    cErrEffLB_BP->cd();
+    hErrEffLB_BP->Draw("HISTO");
+    //Error on Eff on NBP
+    TCanvas *cErrEffLB_NBP = new TCanvas();
+    cErrEffLB_NBP->cd();
+    hErrEffLB_NBP->Draw("HISTO");
+    
+    //We need the path to create an output .root file on which to save the eff and error on eff hisotgrams
+    //We start from thr merged file path and we remove the "AnalysisResults.root" part at the end (20 characters)
+    //Using the erase function from the string library
+    runFolder.erase(runFolder.end()-20,runFolder.end());
+    cout << "Test of removing string portion: " << runFolder << endl;
+
+    //Create output file in the merged files directory and save the hisotgrams on it
+    TFile *fOut = new TFile((runFolder+"mergedRuns.root").c_str(),"RECREATE");
+    cEffLB_both->Write("Eff_LB_both");
+    cEffLB_BP->Write("Eff_LB_BP");
+    cEffLB_NBP->Write("Eff_LB_NBP");
+    cErrEffLB_both->Write("Err_Eff_LB_both");
+    cErrEffLB_BP->Write("Err_Eff_LB_BP");
+    cErrEffLB_NBP->Write("Err_Eff_LB_NBP");
+
+} //End of calculateEfficieny function
 
 void effByRun() {
 
@@ -88,7 +189,7 @@ void effByRun() {
     for (unsigned int iRun = 0; iRun < vRun.size(); iRun++) {
         //Enter the folder
         string runFolder = runPath+to_string((int)vRun.at(iRun));
-        gSystem->cd(runFolder.c_str());
+        //gSystem->cd(runFolder.c_str());
 
         //run file name = path of the folder + run number (runFolder) + fileName
         string runFileName = runFolder+"/"+fileName;
@@ -124,6 +225,7 @@ void effByRun() {
             // merge the root files calling hadd.C
             // empty the runs.dat file (close the file and set the bool "open to false")
             // save the merged object inside a folder
+            // call efficiency calculator function
         else if (cumulativeTracks >= trackGoal) {
             cout << "Track goal reached!" << endl;
             hMergeRuns << runFileName << "\n";
@@ -134,13 +236,15 @@ void effByRun() {
             //Test - create a sub-folder inside the merged_files directory
             gSystem->mkdir((runPath+"/"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
-            string mergeFiles = '"'+runPath+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
-            //cout << mergeFiles << endl;
-            gROOT->ProcessLine(Form("hadd(%s)",mergeFiles.c_str()));
+            string mergeFilesForHadd = '"'+runPath+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            string mergeFiles = runPath+to_string(mergeCounter)+"/AnalysisResults.root";
+            cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
+            gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
+            calculateEfficiencyByRun(mergeFiles);
         }
 
         //Edge case, it's the last run of the list and the number of cumulative tracks has not yet reached the goal
-            // we still merge those files and that's it
+            // we still merge those files and that's it so we copied the same code as the merges earlier on
         if (vRun.at(iRun) == vRun.back() && cumulativeTracks < trackGoal) {
             cout << "Last run of the list and track goal not yet reached, merging anyway" << endl;
             hMergeRuns << runFileName << "\n";
