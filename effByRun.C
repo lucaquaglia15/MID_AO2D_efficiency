@@ -120,8 +120,8 @@ void effByRun() {
             // write to file the last run which got above the track goal
             // increase the number of merges
             // set the cumulative number of tracks to 0
-            // close the output .dat file
-            // merge the root files calling hadd.cpp
+            // close the output .dat file and set the open variable to false
+            // merge the root files calling hadd.C
             // empty the runs.dat file (close the file and set the bool "open to false")
             // save the merged object inside a folder
         else if (cumulativeTracks >= trackGoal) {
@@ -130,13 +130,30 @@ void effByRun() {
             mergeCounter++;
             cumulativeTracks = 0;
             hMergeRuns.close();
+            open = false;
             //Test - create a sub-folder inside the merged_files directory
             gSystem->mkdir((runPath+"/"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
             string mergeFiles = '"'+runPath+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
             //cout << mergeFiles << endl;
             gROOT->ProcessLine(Form("hadd(%s)",mergeFiles.c_str()));
-            open = false;
+        }
+
+        //Edge case, it's the last run of the list and the number of cumulative tracks has not yet reached the goal
+            // we still merge those files and that's it
+        if (vRun.at(iRun) == vRun.back() && cumulativeTracks < trackGoal) {
+            cout << "Last run of the list and track goal not yet reached, merging anyway" << endl;
+            hMergeRuns << runFileName << "\n";
+            mergeCounter++;
+            cumulativeTracks = 0;
+            hMergeRuns.close();
+            open = false; //no need to set it to false but for redudancy we do it
+            //Test - create a sub-folder inside the merged_files directory
+            gSystem->mkdir((runPath+"/"+to_string(mergeCounter)).c_str());
+            //Execute the hadd code (already loaded before the loop)
+            string mergeFiles = '"'+runPath+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            //cout << mergeFiles << endl;
+            gROOT->ProcessLine(Form("hadd(%s)",mergeFiles.c_str()));
         }
 
         for (int i = 1; i <= nBinsBoard; i++) {
