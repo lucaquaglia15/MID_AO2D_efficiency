@@ -32,8 +32,12 @@
 using namespace std;
 
 bool debug = false;
-const int trackGoal = 5e+6;
-int tracks = 0, cumulativeTracks = 0;
+const int trackGoal = 8e+6;
+int tracks = 0;
+int cumulativeTracks = 0;
+int nBinsPlane = 4; //Number of planes
+int nBinsRPC = 72; //Number of RPCs
+int nBinsBoard = 936; //Number of LBs
 
 //Function to calculate efficiency -> defined as a function not to write over and over the for loop
 void calculateEfficiencyByRun(string runFolder) {
@@ -63,7 +67,7 @@ void calculateEfficiencyByRun(string runFolder) {
     TH1F *hErrEffLB_NBP = new TH1F("hErrEffLB_NBP","hErrEffLB_NBP",200,0.,10.);
 
     //Loop through Local Boards
-    for (int i = 1; i <= 936; i++) {
+    for (int i = 1; i <= nBinsBoard; i++) {
         //cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
 
         if (hTotLB->GetBinContent(i) != 0) {
@@ -135,13 +139,9 @@ void calculateEfficiencyByRun(string runFolder) {
 
 } //End of calculateEfficieny function
 
-void effByRun() {
+void effByRun() { //Main function
 
-    int nBinsPlane = 4; //Number of planes
-    int nBinsRPC = 72; //Number of RPCs
-    int nBinsBoard = 936; //Number of LBs
-
-    bool open = false;
+    bool open = false; //used to keep track if the .dat file (updated to contain the list of .root files to be merged) has been opened once
 
     float effBothLB = 0, effBPLB = 0, effNBPLB =0;
     float errEffBothLB = 0, errEffBPLB = 0, errEffNBPLB = 0;
@@ -155,11 +155,15 @@ void effByRun() {
     //Plane name
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
+    //General path to add flexibility to the code + period name
+    string period = "LHC23_pass4_skimmed_QC1";
+    string globalPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/";
+
     //Path of the merged file, run-by-run
-    string runPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/"; 
+    string runPath = globalPath+"merged_files/"; 
 
     //Path for the .txt file of the run list of the period
-    string runNumbers = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/run_list.txt"; 
+    string runNumbers = globalPath+"run_list.txt"; 
 
     //Open txt file of runs
     ifstream hRun;
@@ -189,7 +193,6 @@ void effByRun() {
     for (unsigned int iRun = 0; iRun < vRun.size(); iRun++) {
         //Enter the folder
         string runFolder = runPath+to_string((int)vRun.at(iRun));
-        //gSystem->cd(runFolder.c_str());
 
         //run file name = path of the folder + run number (runFolder) + fileName
         string runFileName = runFolder+"/"+fileName;
@@ -210,7 +213,7 @@ void effByRun() {
             //Open the output file only if it has not been opened (i.e. open == false)
             //meaning that it's the first run to be analyzed
             if (!open) {
-                hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat");
+                hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/merged_files/runs.dat");
                 open = true;
             }
             
