@@ -329,26 +329,45 @@ void effByRun() { //Main function
     //Close .dat file of runs to be merged
     hMergeRuns.close();
 
-    //cout << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
+    cout << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
+    
+    for (int i = 0; i < vEffBothLB_runs[0].size(); i++) {
+        cout << vEffBothLB_runs[0].at(i) << endl;
+    }
+    cout << vEffBothLB_runs[1].size() << "\t" << vEffBPLB_runs[1].size() << "\t" << vEffNBPLB_runs[1].size() << endl;
+    cout << vEffBothLB_runs[2].size() << "\t" << vEffBPLB_runs[2].size() << "\t" << vEffNBPLB_runs[2].size() << endl;
 
-    //First [xx] is the run number in the period and the second [xx] is the LB number
-    TGraphErrors *gExample = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[0][30],NULL,&vErrEffBPLB_runs[0][30]);
-    TGraphErrors *gExample2 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[22][30],NULL,&vErrEffBPLB_runs[22][30]);
-    TGraphErrors *gExample3 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[30][30],NULL,&vErrEffBPLB_runs[30][30]);
+    //First [xx] is the LB number in the period and the second is kept at 0 due to how the constructor of TGraph works with vectors.
+    //Structure of the vector is the following
+
+    // (LB1...............LB936) -> first run
+    // ..
+    // ..
+    // ..
+    // ..
+    // ..
+    // ..
+    // ..
+    // (LB1...............LB936) -> Last run   
+    //In the plot we want to show columns, in order to do that we have to decleare the graph as follows
+    TGraphErrors *gExample = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[10][0],NULL,&vErrEffBPLB_runs[10][0]);
+    //TGraphErrors *gExample2 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[10][30],NULL,&vErrEffBPLB_runs[22][30]);
+    //TGraphErrors *gExample3 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[30][30],NULL,&vErrEffBPLB_runs[30][30]);
 
     gExample->SetMarkerStyle(8);
-    gExample2->SetMarkerColor(kGreen);
-    gExample2->SetMarkerStyle(8);
-    gExample2->SetMarkerColor(kRed);
-    gExample3->SetMarkerStyle(8);
-    gExample3->SetMarkerColor(kGreen);
+    //gExample2->SetMarkerColor(kGreen);
+    //gExample2->SetMarkerStyle(8);
+    //gExample2->SetMarkerColor(kRed);
+    //gExample3->SetMarkerStyle(8);
+    //gExample3->SetMarkerColor(kGreen);
 
     TMultiGraph *m = new TMultiGraph();
     m->Add(gExample);
-    m->Add(gExample2);
-    m->Add(gExample3);
+    //m->Add(gExample2);
+    //m->Add(gExample3);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
+    m->GetXaxis()->SetNoExponent(1);
     m->Draw("AP");
 }
