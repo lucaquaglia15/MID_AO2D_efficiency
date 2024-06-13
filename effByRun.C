@@ -329,17 +329,29 @@ void effByRun() { //Main function
     //Close .dat file of runs to be merged
     hMergeRuns.close();
 
-    cout << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
-    
-    for (int i = 0; i < vEffBothLB_runs[0].size(); i++) {
-        cout << vEffBothLB_runs[0].at(i) << endl;
-    }
+    cout << vEffBothLB_runs.size() << "\t" << vEffBPLB_runs.size() << "\t" << vEffNBPLB_runs.size() << endl;
     cout << vEffBothLB_runs[1].size() << "\t" << vEffBPLB_runs[1].size() << "\t" << vEffNBPLB_runs[1].size() << endl;
     cout << vEffBothLB_runs[2].size() << "\t" << vEffBPLB_runs[2].size() << "\t" << vEffNBPLB_runs[2].size() << endl;
 
+    //Get efficiency for a given LB as a function of the run number
+    vector<float> effLB1,effLB2,effLB3;
+    vector<float> errEffLB1,errEffLB2,errEffLB3;
+
+    for (unsigned int i = 0; i < vRun.size(); i++) {
+        if (i == 14) 
+            continue;
+        
+        effLB1.push_back(vEffBPLB_runs[i][10]);
+        effLB2.push_back(vEffBPLB_runs[i][35]);
+        effLB3.push_back(vEffBPLB_runs[i][55]);
+
+        errEffLB1.push_back(vErrEffBPLB_runs[i][10]);
+        errEffLB2.push_back(vErrEffBPLB_runs[i][35]);
+        errEffLB3.push_back(vErrEffBPLB_runs[i][55]);
+    }
+
     //First [xx] is the LB number in the period and the second is kept at 0 due to how the constructor of TGraph works with vectors.
     //Structure of the vector is the following
-
     // (LB1...............LB936) -> first run
     // ..
     // ..
@@ -350,21 +362,21 @@ void effByRun() { //Main function
     // ..
     // (LB1...............LB936) -> Last run   
     //In the plot we want to show columns, in order to do that we have to decleare the graph as follows
-    TGraphErrors *gExample = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[10][0],NULL,&vErrEffBPLB_runs[10][0]);
-    //TGraphErrors *gExample2 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[10][30],NULL,&vErrEffBPLB_runs[22][30]);
-    //TGraphErrors *gExample3 = new TGraphErrors(vRun.size(),&vRun[0],&vEffBPLB_runs[30][30],NULL,&vErrEffBPLB_runs[30][30]);
+    TGraphErrors *gExample = new TGraphErrors(vRun.size(),&vRun[0],&effLB1[0],NULL,&errEffLB1[0]);
+    TGraphErrors *gExample2 = new TGraphErrors(vRun.size(),&vRun[0],&effLB2[0],NULL,&errEffLB2[0]);
+    TGraphErrors *gExample3 = new TGraphErrors(vRun.size(),&vRun[0],&effLB3[0],NULL,&errEffLB3[0]);
 
     gExample->SetMarkerStyle(8);
-    //gExample2->SetMarkerColor(kGreen);
-    //gExample2->SetMarkerStyle(8);
-    //gExample2->SetMarkerColor(kRed);
-    //gExample3->SetMarkerStyle(8);
-    //gExample3->SetMarkerColor(kGreen);
+    gExample2->SetMarkerColor(kGreen);
+    gExample2->SetMarkerStyle(8);
+    gExample2->SetMarkerColor(kRed);
+    gExample3->SetMarkerStyle(8);
+    gExample3->SetMarkerColor(kGreen);
 
     TMultiGraph *m = new TMultiGraph();
     m->Add(gExample);
-    //m->Add(gExample2);
-    //m->Add(gExample3);
+    m->Add(gExample2);
+    m->Add(gExample3);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
