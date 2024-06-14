@@ -33,7 +33,8 @@
 using namespace std;
 
 bool debug = false;
-const int trackGoal = 8e+6;
+const int trackGoal = 8e+6; //Normal value
+//const int trackGoal = 8e+7;//To test, it goes faster since this number of tracks is never reached
 int tracks = 0;
 int cumulativeTracks = 0;
 int nBinsPlane = 4; //Number of planes
@@ -54,7 +55,11 @@ void clearFolders(string folder) {
 } //End of clearFolders
 
 //Function to calculate efficiency -> defined as a function not to write over and over the for loop
-void calculateEfficiencyByRun(string runFolder) {
+//vectors passed by reference in order to modify them when the function is called
+void calculateEfficiencyByRun(string runFolder, vector<float> &effBP, vector<float> &effNBP, vector<float> &effboth,
+vector<vector<float>> &effBPmerged, vector<vector<float>> &effNBPmerged, vector<vector<float>> &effbothmerged,
+vector<float> &errEffBP, vector<float> &errEffNBP, vector<float> &errEffboth,
+vector<vector<float>> &errEffBPmerged, vector<vector<float>> &errEffNBPmerged, vector<vector<float>> &errEffbothmerged) {
 
     bool enablePrint = false; //To enable eff printout
     
@@ -105,52 +110,78 @@ void calculateEfficiencyByRun(string runFolder) {
             hEffLB_BP->Fill(effBPLB); 
             hEffLB_NBP->Fill(effNBPLB); 
 
+            effboth.push_back(effBothLB);
+            effBP.push_back(effBPLB);
+            effNBP.push_back(effNBPLB);
+
             hErrEffLB_both->Fill(errEffBothLB); 
             hErrEffLB_BP->Fill(errEffBPLB); 
             hErrEffLB_NBP->Fill(errEffNBPLB); 
+
+            errEffboth.push_back(errEffBothLB);
+            errEffBP.push_back(errEffBPLB);
+            errEffNBP.push_back(errEffNBPLB);
         }
     }
 
-    //Eff on both planes
-    TCanvas *cEffLB_both = new TCanvas();
-    cEffLB_both->cd();
-    hEffLB_both->Draw("HISTO");
-    //Eff on BP
-    TCanvas *cEffLB_BP = new TCanvas();
-    cEffLB_BP->cd();
-    hEffLB_BP->Draw("HISTO");
-    //Eff on NBP
-    TCanvas *cEffLB_NBP = new TCanvas();
-    cEffLB_NBP->cd();
-    hEffLB_NBP->Draw("HISTO");
-    //Err on Eff on both planes
-    TCanvas *cErrEffLB_both = new TCanvas();
-    cErrEffLB_both->cd();
-    hErrEffLB_both->Draw("HISTO");
-    //Error on Eff on BP
-    TCanvas *cErrEffLB_BP = new TCanvas();
-    cErrEffLB_BP->cd();
-    hErrEffLB_BP->Draw("HISTO");
-    //Error on Eff on NBP
-    TCanvas *cErrEffLB_NBP = new TCanvas();
-    cErrEffLB_NBP->cd();
-    hErrEffLB_NBP->Draw("HISTO");
-    
+    effbothmerged.push_back(effboth);
+    effBPmerged.push_back(effBP);
+    effNBPmerged.push_back(effNBP);
+
+    effboth.clear();
+    effBP.clear();
+    effNBP.clear();
+
+    errEffbothmerged.push_back(errEffboth);
+    errEffBPmerged.push_back(errEffBP);
+    errEffNBPmerged.push_back(errEffNBP);
+
+    errEffboth.clear();
+    errEffBP.clear();
+    errEffNBP.clear();
+
     //We need the path to create an output .root file on which to save the eff and error on eff hisotgrams
     //We start from thr merged file path and we remove the "AnalysisResults.root" part at the end (20 characters)
     //Using the erase function from the string library
     runFolder.erase(runFolder.end()-20,runFolder.end());
     cout << "Test of removing string portion: " << runFolder << endl;
 
-    //Create output file in the merged files directory and save the hisotgrams on it
-    TFile *fOut = new TFile((runFolder+"mergedRuns.root").c_str(),"RECREATE");
-    cEffLB_both->Write("Eff_LB_both");
-    cEffLB_BP->Write("Eff_LB_BP");
-    cEffLB_NBP->Write("Eff_LB_NBP");
-    cErrEffLB_both->Write("Err_Eff_LB_both");
-    cErrEffLB_BP->Write("Err_Eff_LB_BP");
-    cErrEffLB_NBP->Write("Err_Eff_LB_NBP");
+    //Eff on both planes
+    bool makePlots = false;
+    if (makePlots) {
+        TCanvas *cEffLB_both = new TCanvas();
+        cEffLB_both->cd();
+        hEffLB_both->Draw("HISTO");
+        //Eff on BP
+        TCanvas *cEffLB_BP = new TCanvas();
+        cEffLB_BP->cd();
+        hEffLB_BP->Draw("HISTO");
+        //Eff on NBP
+        TCanvas *cEffLB_NBP = new TCanvas();
+        cEffLB_NBP->cd();
+        hEffLB_NBP->Draw("HISTO");
+        //Err on Eff on both planes
+        TCanvas *cErrEffLB_both = new TCanvas();
+        cErrEffLB_both->cd();
+        hErrEffLB_both->Draw("HISTO");
+        //Error on Eff on BP
+        TCanvas *cErrEffLB_BP = new TCanvas();
+        cErrEffLB_BP->cd();
+        hErrEffLB_BP->Draw("HISTO");
+        //Error on Eff on NBP
+        TCanvas *cErrEffLB_NBP = new TCanvas();
+        cErrEffLB_NBP->cd();
+        hErrEffLB_NBP->Draw("HISTO");
 
+        TFile *fOut = new TFile((runFolder+"mergedRuns.root").c_str(),"RECREATE");
+        cEffLB_both->Write("Eff_LB_both");
+        cEffLB_BP->Write("Eff_LB_BP");
+        cEffLB_NBP->Write("Eff_LB_NBP");
+        cErrEffLB_both->Write("Err_Eff_LB_both");
+        cErrEffLB_BP->Write("Err_Eff_LB_BP");
+        cErrEffLB_NBP->Write("Err_Eff_LB_NBP");
+    }
+    
 } //End of calculateEfficieny function
 
 void effByRun() { //Main function
@@ -160,11 +191,21 @@ void effByRun() { //Main function
     float effBothLB = 0, effBPLB = 0, effNBPLB =0;
     float errEffBothLB = 0, errEffBPLB = 0, errEffNBPLB = 0;
 
+    //Run by run
     vector<float> vEffBothLB, vEffBPLB, vEffNBPLB;
     vector<float> vErrEffBothLB, vErrEffBPLB, vErrEffNBPLB;
 
+    //Merged runs
+    vector<float> vEffBothLBmerged, vEffBPLBmerged, vEffNBPLBmerged;
+    vector<float> vErrEffBothLBmerged, vErrEffBPLBmerged, vErrEffNBPLBmerged;
+
+    //Run by run
     vector<vector<float>> vEffBothLB_runs, vEffBPLB_runs, vEffNBPLB_runs;
     vector<vector<float>> vErrEffBothLB_runs, vErrEffBPLB_runs, vErrEffNBPLB_runs;
+    
+    //Merged runs
+    vector<vector<float>> vEffBothLB_merged, vEffBPLB_merged, vEffNBPLB_merged;
+    vector<vector<float>> vErrEffBothLB_merged, vErrEffBPLB_merged, vErrEffNBPLB_merged;
 
     //Plane name
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
@@ -260,7 +301,9 @@ void effByRun() { //Main function
             string mergeFiles = runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root";
             cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
             gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
-            calculateEfficiencyByRun(mergeFiles);
+            //Call calculateEfficiency function on merged files
+            calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
+            vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged);
         }
 
         //Edge case, it's the last run of the list and the number of cumulative tracks has not yet reached the goal
@@ -275,9 +318,13 @@ void effByRun() { //Main function
             //Test - create a sub-folder inside the merged_files directory
             gSystem->mkdir((runPath+"mergedRuns"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
-            string mergeFiles = '"'+runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
-            //cout << mergeFiles << endl;
-            gROOT->ProcessLine(Form("hadd(%s)",mergeFiles.c_str()));
+            string mergeFilesForHadd = '"'+runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            string mergeFiles = runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root";
+            cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
+            gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
+            //Call calculateEfficiency function on merged files
+            calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
+            vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged);
         }
 
         for (int i = 1; i <= nBinsBoard; i++) {
@@ -329,25 +376,27 @@ void effByRun() { //Main function
     //Close .dat file of runs to be merged
     hMergeRuns.close();
 
-    cout << vEffBothLB_runs.size() << "\t" << vEffBPLB_runs.size() << "\t" << vEffNBPLB_runs.size() << endl;
-    cout << vEffBothLB_runs[1].size() << "\t" << vEffBPLB_runs[1].size() << "\t" << vEffNBPLB_runs[1].size() << endl;
-    cout << vEffBothLB_runs[2].size() << "\t" << vEffBPLB_runs[2].size() << "\t" << vEffNBPLB_runs[2].size() << endl;
+    cout << "Size of the vector of vectors run by run " << vEffBothLB_runs.size() << "\t" << vEffBPLB_runs.size() << "\t" << vEffNBPLB_runs.size() << endl;
+    cout << "Size of the vector of vectors merged " << vEffBothLB_merged.size() << "\t" << vEffBPLB_merged.size() << "\t" << vEffNBPLB_merged.size() << endl;
 
     //Get efficiency for a given LB as a function of the run number
-    vector<float> effLB1,effLB2,effLB3;
-    vector<float> errEffLB1,errEffLB2,errEffLB3;
+    vector<float> effLB1,effLB2,effLB3,effLB4;
+    vector<float> errEffLB1,errEffLB2,errEffLB3,errEffLB4;
 
     for (unsigned int i = 0; i < vRun.size(); i++) {
-        if (i == 14) 
-            continue;
-        
-        effLB1.push_back(vEffBPLB_runs[i][10]);
-        effLB2.push_back(vEffBPLB_runs[i][35]);
-        effLB3.push_back(vEffBPLB_runs[i][55]);
+        //if (i == 14) 
+        //    continue;
+        //else {
+            effLB1.push_back(vEffBPLB_runs[i][10]);
+            effLB2.push_back(vEffBPLB_runs[i][35]);
+            effLB3.push_back(vEffBPLB_runs[i][55]);
+            effLB4.push_back(vEffBPLB_runs[i][145]);
 
-        errEffLB1.push_back(vErrEffBPLB_runs[i][10]);
-        errEffLB2.push_back(vErrEffBPLB_runs[i][35]);
-        errEffLB3.push_back(vErrEffBPLB_runs[i][55]);
+            errEffLB1.push_back(vErrEffBPLB_runs[i][10]);
+            errEffLB2.push_back(vErrEffBPLB_runs[i][35]);
+            errEffLB3.push_back(vErrEffBPLB_runs[i][55]);
+            errEffLB4.push_back(vErrEffBPLB_runs[i][145]);
+        //}
     }
 
     //First [xx] is the LB number in the period and the second is kept at 0 due to how the constructor of TGraph works with vectors.
@@ -365,6 +414,7 @@ void effByRun() { //Main function
     TGraphErrors *gExample = new TGraphErrors(vRun.size(),&vRun[0],&effLB1[0],NULL,&errEffLB1[0]);
     TGraphErrors *gExample2 = new TGraphErrors(vRun.size(),&vRun[0],&effLB2[0],NULL,&errEffLB2[0]);
     TGraphErrors *gExample3 = new TGraphErrors(vRun.size(),&vRun[0],&effLB3[0],NULL,&errEffLB3[0]);
+    TGraphErrors *gExample4 = new TGraphErrors(vRun.size(),&vRun[0],&effLB4[0],NULL,&errEffLB4[0]);
 
     gExample->SetMarkerStyle(8);
     gExample2->SetMarkerColor(kGreen);
@@ -372,14 +422,18 @@ void effByRun() { //Main function
     gExample2->SetMarkerColor(kRed);
     gExample3->SetMarkerStyle(8);
     gExample3->SetMarkerColor(kGreen);
+    gExample4->SetMarkerStyle(8);
+    gExample4->SetMarkerColor(kMagenta);
 
     TMultiGraph *m = new TMultiGraph();
     m->Add(gExample);
     m->Add(gExample2);
     m->Add(gExample3);
+    m->Add(gExample4);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
     m->GetXaxis()->SetNoExponent(1);
+    m->GetYaxis()->SetRangeUser(0,105);
     m->Draw("AP");
 }
