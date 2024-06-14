@@ -234,6 +234,8 @@ void effByRun() { //Main function
     while(hRun >> run) {
         vRun.push_back(run);
     }
+    //sort in ascending order
+    sort(vRun.begin(), vRun.end()); 
 
     //Output file for the merge of root files if the number of tracks reaches the desired goal
     ofstream hMergeRuns;
@@ -244,8 +246,14 @@ void effByRun() { //Main function
     //Load hadd.C macro to merge the root files from different runs
     gROOT->ProcessLine(".L /home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/hadd.C");
 
-    //Test - to keep track of the number of merges
-    int mergeCounter = 0;
+    //To keep track of the number of merges and the number of times the track number was below the goal (to calculate average run number)
+    int mergeCounter = 0, avgCalculation = 0;
+    //To sum runs to calculate "average" run number
+    float mergeRun = 0;
+
+    //Each element of this vector is the average run number for which the merge is done
+    //e.g. the merge is done between runs 340, 342 and 345 -> (340+342+345)/3=342
+    vector<float> averageRun;
 
     //Loop on all runs
     for (unsigned int iRun = 0; iRun < vRun.size(); iRun++) {
@@ -267,6 +275,9 @@ void effByRun() { //Main function
         cumulativeTracks += tracks;
         cout << "Run number " << vRun.at(iRun) << " tot tracks in all LB " << tracks << " cumulative " << cumulativeTracks << endl;
 
+        mergeRun+=vRun.at(iRun); //sum run number to calculate "average" run number
+        avgCalculation++; //increase by one for average calculations
+
         if (cumulativeTracks < trackGoal) { //If total track number is below the target -> Fill the file with the path of each AnalysisResults.root from each run
             //Open the output file only if it has not been opened (i.e. open == false)
             //meaning that it's the first run to be analyzed
@@ -274,8 +285,7 @@ void effByRun() { //Main function
                 hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/merged_files/runs.dat");
                 open = true;
             }
-            
-            hMergeRuns << runFileName << "\n";
+            hMergeRuns << runFileName << "\n"; //Write to output file
         }
 
         //Total track number greater than goal 
@@ -291,6 +301,8 @@ void effByRun() { //Main function
             cout << "Track goal reached!" << endl;
             hMergeRuns << runFileName << "\n";
             mergeCounter++;
+            //mergeRun+=vRun.at(iRun);
+            //avgCalculation++;
             cumulativeTracks = 0;
             hMergeRuns.close();
             open = false;
@@ -304,14 +316,20 @@ void effByRun() { //Main function
             //Call calculateEfficiency function on merged files
             calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
             vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged);
+            averageRun.push_back(mergeRun/avgCalculation);
+            cout << "avg run " << mergeRun/avgCalculation << "\t mergeRun " << mergeRun << "\t avgCalculation " << avgCalculation << endl;
+            mergeRun = 0;
+            avgCalculation = 0;
         }
 
         //Edge case, it's the last run of the list and the number of cumulative tracks has not yet reached the goal
             // we still merge those files and that's it so we copied the same code as the merges earlier on
-        if (vRun.at(iRun) == vRun.back() && cumulativeTracks < trackGoal) {
+        else if (vRun.at(iRun) == vRun.back() && cumulativeTracks < trackGoal) {
             cout << "Last run of the list and track goal not yet reached, merging anyway" << endl;
             hMergeRuns << runFileName << "\n";
             mergeCounter++;
+            //mergeRun+=vRun.at(iRun);
+            //avgCalculation++;
             cumulativeTracks = 0;
             hMergeRuns.close();
             open = false; //no need to set it to false but for redudancy we do it
@@ -325,6 +343,10 @@ void effByRun() { //Main function
             //Call calculateEfficiency function on merged files
             calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
             vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged);
+            averageRun.push_back(mergeRun/avgCalculation);
+            cout << "avg run " << mergeRun/avgCalculation << "\t mergeRun " << mergeRun << "\t avgCalculation " << avgCalculation << endl;
+            mergeRun = 0;
+            avgCalculation = 0;
         }
 
         for (int i = 1; i <= nBinsBoard; i++) {
@@ -377,29 +399,13 @@ void effByRun() { //Main function
     hMergeRuns.close();
 
     cout << "Size of the vector of vectors run by run " << vEffBothLB_runs.size() << "\t" << vEffBPLB_runs.size() << "\t" << vEffNBPLB_runs.size() << endl;
-    cout << "Size of the vector of vectors merged " << vEffBothLB_merged.size() << "\t" << vEffBPLB_merged.size() << "\t" << vEffNBPLB_merged.size() << endl;
+    cout << "Size of the vector of vectors merged " << vEffBothLB_merged[0].size() << "\t" << vEffBPLB_merged.size() << "\t" << vEffNBPLB_merged.size() << endl;
 
-    //Get efficiency for a given LB as a function of the run number
-    vector<float> effLB1,effLB2,effLB3,effLB4;
-    vector<float> errEffLB1,errEffLB2,errEffLB3,errEffLB4;
-
-    for (unsigned int i = 0; i < vRun.size(); i++) {
-        //if (i == 14) 
-        //    continue;
-        //else {
-            effLB1.push_back(vEffBPLB_runs[i][10]);
-            effLB2.push_back(vEffBPLB_runs[i][35]);
-            effLB3.push_back(vEffBPLB_runs[i][55]);
-            effLB4.push_back(vEffBPLB_runs[i][145]);
-
-            errEffLB1.push_back(vErrEffBPLB_runs[i][10]);
-            errEffLB2.push_back(vErrEffBPLB_runs[i][35]);
-            errEffLB3.push_back(vErrEffBPLB_runs[i][55]);
-            errEffLB4.push_back(vErrEffBPLB_runs[i][145]);
-        //}
+    cout << "size of average run: " << averageRun.size() << endl;
+    for (unsigned int i = 0; i < averageRun.size(); i++) {
+        cout << averageRun.at(i) << endl;
     }
-
-    //First [xx] is the LB number in the period and the second is kept at 0 due to how the constructor of TGraph works with vectors.
+    
     //Structure of the vector is the following
     // (LB1...............LB936) -> first run
     // ..
@@ -410,26 +416,77 @@ void effByRun() { //Main function
     // ..
     // ..
     // (LB1...............LB936) -> Last run   
-    //In the plot we want to show columns, in order to do that we have to decleare the graph as follows
-    TGraphErrors *gExample = new TGraphErrors(vRun.size(),&vRun[0],&effLB1[0],NULL,&errEffLB1[0]);
-    TGraphErrors *gExample2 = new TGraphErrors(vRun.size(),&vRun[0],&effLB2[0],NULL,&errEffLB2[0]);
-    TGraphErrors *gExample3 = new TGraphErrors(vRun.size(),&vRun[0],&effLB3[0],NULL,&errEffLB3[0]);
-    TGraphErrors *gExample4 = new TGraphErrors(vRun.size(),&vRun[0],&effLB4[0],NULL,&errEffLB4[0]);
+    //In the plot we want to show columns, in order to do that we have to declare new vectors and save the data of a column inside them
+    //Get efficiency for a given LB as a function of the run number
+    //run by run
+    vector<float> effLB1,effLB2,effLB3,effLB4;
+    vector<float> errEffLB1,errEffLB2,errEffLB3,errEffLB4;
 
-    gExample->SetMarkerStyle(8);
-    gExample2->SetMarkerColor(kGreen);
-    gExample2->SetMarkerStyle(8);
-    gExample2->SetMarkerColor(kRed);
-    gExample3->SetMarkerStyle(8);
-    gExample3->SetMarkerColor(kGreen);
-    gExample4->SetMarkerStyle(8);
-    gExample4->SetMarkerColor(kMagenta);
+    for (unsigned int i = 0; i < vRun.size(); i++) {
+        effLB1.push_back(vEffBPLB_runs[i][10]);
+        effLB2.push_back(vEffBPLB_runs[i][35]);
+        effLB3.push_back(vEffBPLB_runs[i][55]);
+        effLB4.push_back(vEffBPLB_runs[i][145]);
+
+        errEffLB1.push_back(vErrEffBPLB_runs[i][10]);
+        errEffLB2.push_back(vErrEffBPLB_runs[i][35]);
+        errEffLB3.push_back(vErrEffBPLB_runs[i][55]);
+        errEffLB4.push_back(vErrEffBPLB_runs[i][145]);
+    }
+
+    //merged runs
+    vector<float> effLB1merged,effLB2merged,effLB3merged,effLB4merged;
+    vector<float> errEffLB1merged,errEffLB2merged,errEffLB3merged,errEffLB4merged;
+
+    for (unsigned int i = 0; i < averageRun.size(); i++) {
+        effLB1merged.push_back(vEffBPLB_merged[i][10]);
+        effLB2merged.push_back(vEffBPLB_merged[i][35]);
+        effLB3merged.push_back(vEffBPLB_merged[i][55]);
+        effLB4merged.push_back(vEffBPLB_merged[i][145]);
+
+        errEffLB1merged.push_back(vErrEffBPLB_merged[i][10]);
+        errEffLB2merged.push_back(vErrEffBPLB_merged[i][35]);
+        errEffLB3merged.push_back(vErrEffBPLB_merged[i][55]);
+        errEffLB4merged.push_back(vErrEffBPLB_merged[i][145]);
+    }
+
+    TGraphErrors *gEffLBrun = new TGraphErrors(vRun.size(),&vRun[0],&effLB1[0],NULL,&errEffLB1[0]);
+    TGraphErrors *gEffLBrun2 = new TGraphErrors(vRun.size(),&vRun[0],&effLB2[0],NULL,&errEffLB2[0]);
+    TGraphErrors *gEffLBrun3 = new TGraphErrors(vRun.size(),&vRun[0],&effLB3[0],NULL,&errEffLB3[0]);
+    TGraphErrors *gEffLBrun4 = new TGraphErrors(vRun.size(),&vRun[0],&effLB4[0],NULL,&errEffLB4[0]);
+
+    TGraphErrors *gEffLBmerged = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB1merged[0],NULL,&errEffLB1merged[0]);
+    TGraphErrors *gEffLBmerged2 = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB2merged[0],NULL,&errEffLB2merged[0]);
+    TGraphErrors *gEffLBmerged3 = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB3merged[0],NULL,&errEffLB3merged[0]);
+    TGraphErrors *gEffLBmerged4 = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB4merged[0],NULL,&errEffLB4merged[0]);
+
+    gEffLBrun->SetMarkerStyle(8);
+    gEffLBrun2->SetMarkerColor(kGreen);
+    gEffLBrun2->SetMarkerStyle(8);
+    gEffLBrun2->SetMarkerColor(kRed);
+    gEffLBrun3->SetMarkerStyle(8);
+    gEffLBrun3->SetMarkerColor(kGreen);
+    gEffLBrun4->SetMarkerStyle(8);
+    gEffLBrun4->SetMarkerColor(kMagenta);
+
+    gEffLBmerged->SetMarkerStyle(24);
+    gEffLBmerged2->SetMarkerColor(kGreen);
+    gEffLBmerged2->SetMarkerStyle(24);
+    gEffLBmerged2->SetMarkerColor(kRed);
+    gEffLBmerged3->SetMarkerStyle(24);
+    gEffLBmerged3->SetMarkerColor(kGreen);
+    gEffLBmerged4->SetMarkerStyle(24);
+    gEffLBmerged4->SetMarkerColor(kMagenta);
 
     TMultiGraph *m = new TMultiGraph();
-    m->Add(gExample);
-    m->Add(gExample2);
-    m->Add(gExample3);
-    m->Add(gExample4);
+    m->Add(gEffLBrun);
+    //m->Add(gEffLBrun2);
+    //m->Add(gEffLBrun3);
+    //m->Add(gEffLBrun4);
+    m->Add(gEffLBmerged);
+    //m->Add(gEffLBmerged2);
+    //m->Add(gEffLBmerged3);
+    //m->Add(gEffLBmerged4);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
