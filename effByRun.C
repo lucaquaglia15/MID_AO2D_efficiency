@@ -28,7 +28,7 @@
 #include "DataFormatsMID/Track.h" //MID track from O2
 #include "DataFormatsMID/ChEffCounter.h" //Chamber efficiency counter
 
-//#include "CCDB/CcdbApi.h" //CCDB api library
+#include "CCDB/CcdbApi.h" //CCDB api library
 
 using namespace std;
 
@@ -40,6 +40,62 @@ int cumulativeTracks = 0;
 int nBinsPlane = 4; //Number of planes
 int nBinsRPC = 72; //Number of RPCs
 int nBinsBoard = 936; //Number of LBs
+
+o2::ccdb::CcdbApi api; //CCDB API as global object
+o2::mid::Mapping mapping; //MID mapping object to construct ccdb object
+
+//Function to upload to ccdb
+void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB, TH1F *hTotLB, long int startValidity, long int endValidity) {
+
+    //api.init("http://alice-ccdb.cern.ch"); //Open connection to ALICE CCDB
+    api.init("http://ccdb-test.cern.ch:8080"); //Open connection to test CCDB
+
+    //Variables used in the loop
+    int LB936 = 0; //LB 1-> 936
+    int plane = 0; //plane
+
+    std::vector<o2::mid::ChEffCounter> counterVector; //Vector of efficiency counter structs
+    struct o2::mid::ChEffCounter entry; //Struct for efficiency counters
+    o2::mid::ChamberEfficiency effMap; //Chamber efficiency map
+
+    //vector of struct, push back the struct populated with counts
+    for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
+        for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+            for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
+                
+                //Debug printout
+                //if (debug) {
+                //    cout << "det ID " << ide << " col " << icol << " line " << iline << " LB " << mapping.getBoardId(iline,icol,ide) << endl;
+                //    cout << "LB: " << mapping.getBoardId(iline,icol,ide) << "\t unique FEEID:" << o2::mid::detparams::makeUniqueFEEId(ide, icol, iline) << "\t";
+                //}
+                
+                plane = o2::mid::detparams::getChamber(ide); //Get detection plane
+
+                LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
+
+                entry.deId =  uint8_t(ide);
+                entry.columnId = uint8_t(icol);
+                entry.lineId = uint8_t(iline);
+
+                entry.counts[0] = hFiredBPLB->GetBinContent(LB936); //BP
+                entry.counts[1] = hFiredNBPLB->GetBinContent(LB936); //NBP
+                entry.counts[2] = hFiredBothPlanesLB->GetBinContent(LB936); //Both
+                entry.counts[3] = hTotLB->GetBinContent(LB936); //Total
+
+                counterVector.push_back(entry);
+                
+                //Debug printout
+                //if (debug) 
+                //    cout << LB936 << "\t both: " << hFiredBothPlanesLB->GetBinContent(LB936) << "\t tot: " << hTotLB->GetBinContent(LB936) << endl;
+            }
+        }
+    }
+
+    //Upload to ccdb
+    std::map<std::string, std::string> md; //Metada map
+    //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, 1, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP); //Upload in CCDB
+    api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, startValidity, endValidity); //Upload in CCDB
+} //end of uploadToCCDB
 
 //Function to delete folders with data from multiple runs merge -> called everytime the code is launched to clean up in case we change
 //target number of tracks, hence number of merges
@@ -59,7 +115,8 @@ void clearFolders(string folder) {
 void calculateEfficiencyByRun(string runFolder, vector<float> &effBP, vector<float> &effNBP, vector<float> &effboth,
 vector<vector<float>> &effBPmerged, vector<vector<float>> &effNBPmerged, vector<vector<float>> &effbothmerged,
 vector<float> &errEffBP, vector<float> &errEffNBP, vector<float> &errEffboth,
-vector<vector<float>> &errEffBPmerged, vector<vector<float>> &errEffNBPmerged, vector<vector<float>> &errEffbothmerged) {
+vector<vector<float>> &errEffBPmerged, vector<vector<float>> &errEffNBPmerged, vector<vector<float>> &errEffbothmerged,
+long int first, long int last) {
 
     bool enablePrint = false; //To enable eff printout
     
@@ -71,6 +128,10 @@ vector<vector<float>> &errEffBPmerged, vector<vector<float>> &errEffNBPmerged, v
     TH1F *hFiredBPLB = (TH1F*)d->Get("nFiredBPperBoard");
     TH1F *hFiredNBPLB = (TH1F*)d->Get("nFiredNBPperBoard");
     TH1F *hTotLB = (TH1F*)d->Get("nTotperBoard");
+
+    cout << "first in function: " << first << " last in function " << last << endl;
+
+    uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,first,last);
 
     //To calculate efficiency and error on efficiency
     float effBothLB = 0, effBPLB = 0, effNBPLB =0;
@@ -187,6 +248,7 @@ vector<vector<float>> &errEffBPmerged, vector<vector<float>> &errEffNBPmerged, v
 void effByRun() { //Main function
 
     bool open = false; //used to keep track if the .dat file (updated to contain the list of .root files to be merged) has been opened once
+    bool assigned = false; //used to keep track if the first run of the merge has been assigned or not (to find proper timestamp range)
 
     float effBothLB = 0, effBPLB = 0, effNBPLB =0;
     float errEffBothLB = 0, errEffBPLB = 0, errEffNBPLB = 0;
@@ -219,6 +281,7 @@ void effByRun() { //Main function
 
     //Path for the .txt file of the run list of the period
     string runNumbers = globalPath+"run_list.txt"; 
+    string runDates = globalPath+"run_dates.txt";
 
     //Call function to clear all the folders with the data merged from multiple runs
     clearFolders(runPath);
@@ -226,6 +289,20 @@ void effByRun() { //Main function
     //Open txt file of runs
     ifstream hRun;
     hRun.open(runNumbers.c_str());
+
+    //Open txt file of start/end dates of the runs
+    ifstream hDate;
+    hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/run_dates.txt");
+    
+    //Get start and end of each run
+    long int runForDate, start, end;
+    vector<long int> vRunForDate, vStart, vEnd;
+    
+    while (hDate >> runForDate >> start >> end){
+        vRunForDate.push_back(runForDate);
+        vStart.push_back(start);
+        vEnd.push_back(end);
+    }
 
     //Push back to a vector of int (no need to care about size)
     float run;
@@ -255,6 +332,9 @@ void effByRun() { //Main function
     //e.g. the merge is done between runs 340, 342 and 345 -> (340+342+345)/3=342
     vector<float> averageRun;
 
+    //First and last run numbers in each merge
+    long int first, last;
+
     //Loop on all runs
     for (unsigned int iRun = 0; iRun < vRun.size(); iRun++) {
         //Enter the folder
@@ -277,6 +357,11 @@ void effByRun() { //Main function
 
         mergeRun+=vRun.at(iRun); //sum run number to calculate "average" run number
         avgCalculation++; //increase by one for average calculations
+
+        if (!assigned) {
+            first = vStart.at(iRun);
+            assigned = true;
+        }
 
         if (cumulativeTracks < trackGoal) { //If total track number is below the target -> Fill the file with the path of each AnalysisResults.root from each run
             //Open the output file only if it has not been opened (i.e. open == false)
@@ -301,11 +386,10 @@ void effByRun() { //Main function
             cout << "Track goal reached!" << endl;
             hMergeRuns << runFileName << "\n";
             mergeCounter++;
-            //mergeRun+=vRun.at(iRun);
-            //avgCalculation++;
             cumulativeTracks = 0;
             hMergeRuns.close();
             open = false;
+            assigned = false;
             //Test - create a sub-folder inside the merged_files directory
             gSystem->mkdir((runPath+"mergedRuns"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
@@ -314,8 +398,9 @@ void effByRun() { //Main function
             cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
             gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
             //Call calculateEfficiency function on merged files
+            last = vEnd.at(iRun);
             calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
-            vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged);
+            vErrEffBPLBmerged, vErrEffNBPLBmerged,vErrEffBothLBmerged,vErrEffBPLB_merged,vErrEffNBPLB_merged,vErrEffBothLB_merged,first,last);
             averageRun.push_back(mergeRun/avgCalculation);
             cout << "avg run " << mergeRun/avgCalculation << "\t mergeRun " << mergeRun << "\t avgCalculation " << avgCalculation << endl;
             mergeRun = 0;
@@ -333,6 +418,7 @@ void effByRun() { //Main function
             cumulativeTracks = 0;
             hMergeRuns.close();
             open = false; //no need to set it to false but for redudancy we do it
+            assigned = false;
             //Test - create a sub-folder inside the merged_files directory
             gSystem->mkdir((runPath+"mergedRuns"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
@@ -341,8 +427,9 @@ void effByRun() { //Main function
             cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
             gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
             //Call calculateEfficiency function on merged files
+            last = vEnd.at(iRun);
             calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
-            vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged);
+            vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged,first,last);
             averageRun.push_back(mergeRun/avgCalculation);
             cout << "avg run " << mergeRun/avgCalculation << "\t mergeRun " << mergeRun << "\t avgCalculation " << avgCalculation << endl;
             mergeRun = 0;
