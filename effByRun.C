@@ -33,10 +33,10 @@
 using namespace std;
 
 bool debug = false;
-const int trackGoal = 8e+6; //Normal value
-//const int trackGoal = 8e+7;//To test, it goes faster since this number of tracks is never reached
-int tracks = 0;
-int cumulativeTracks = 0;
+//const int trackGoal = 8e+6; //Normal value
+long int trackGoal = 8e+11;//To test, it goes faster since this number of tracks is never reached
+long int tracks = 0;
+long int cumulativeTracks = 0;
 int nBinsPlane = 4; //Number of planes
 int nBinsRPC = 72; //Number of RPCs
 int nBinsBoard = 936; //Number of LBs
@@ -49,6 +49,7 @@ void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB,
 
     //api.init("http://alice-ccdb.cern.ch"); //Open connection to ALICE CCDB
     api.init("http://ccdb-test.cern.ch:8080"); //Open connection to test CCDB
+    //api.init("http://alice-ccdb.cern.ch/Users/l/lquaglia");
 
     //Variables used in the loop
     int LB936 = 0; //LB 1-> 936
@@ -90,11 +91,10 @@ void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB,
             }
         }
     }
-
     //Upload to ccdb
     std::map<std::string, std::string> md; //Metada map
-    //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, 1, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP); //Upload in CCDB
     api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, startValidity, endValidity); //Upload in CCDB
+    //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency/LHC23_PbPb_pass3_I-A11_perRun", md, startValidity, endValidity); //Upload in CCDB
 } //end of uploadToCCDB
 
 //Function to delete folders with data from multiple runs merge -> called everytime the code is launched to clean up in case we change
@@ -131,8 +131,11 @@ long int first, long int last) {
 
     cout << "first in function: " << first << " last in function " << last << endl;
 
-    uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,first,last);
-
+    bool upload = false;
+    if (upload) {
+        uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,first,last);
+    } 
+    
     //To calculate efficiency and error on efficiency
     float effBothLB = 0, effBPLB = 0, effNBPLB =0;
     float errEffBothLB = 0, errEffBPLB = 0, errEffNBPLB = 0;
@@ -273,7 +276,8 @@ void effByRun() { //Main function
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
     //General path to add flexibility to the code + period name
-    string period = "LHC23_pass4_skimmed_QC1";
+    //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
+    string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
     string globalPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/";
 
     //Path of the merged file, run-by-run
@@ -292,7 +296,8 @@ void effByRun() { //Main function
 
     //Open txt file of start/end dates of the runs
     ifstream hDate;
-    hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/run_dates.txt");
+    //hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/run_dates.txt");
+    hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_PbPb_pass3_I-A11/run_dates.txt");
     
     //Get start and end of each run
     long int runForDate, start, end;
@@ -351,6 +356,11 @@ void effByRun() { //Main function
         TH1F *hFiredNBPLB = (TH1F*)d->Get("nFiredNBPperBoard");
         TH1F *hTotLB = (TH1F*)d->Get("nTotperBoard");
 
+        bool uploadByRun = false;
+        if (uploadByRun) {
+            uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,vStart.at(iRun),vEnd.at(iRun));
+        }
+    
         tracks = hTotLB->GetEntries();
         cumulativeTracks += tracks;
         cout << "Run number " << vRun.at(iRun) << " tot tracks in all LB " << tracks << " cumulative " << cumulativeTracks << endl;
@@ -363,9 +373,10 @@ void effByRun() { //Main function
             assigned = true;
         }
 
-        if (cumulativeTracks < trackGoal) { //If total track number is below the target -> Fill the file with the path of each AnalysisResults.root from each run
+        if (cumulativeTracks < trackGoal && vRun.at(iRun) != vRun.back()) { //If total track number is below the target -> Fill the file with the path of each AnalysisResults.root from each run
             //Open the output file only if it has not been opened (i.e. open == false)
             //meaning that it's the first run to be analyzed
+            cout << "here" << endl;
             if (!open) {
                 hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/merged_files/runs.dat");
                 open = true;
@@ -486,7 +497,7 @@ void effByRun() { //Main function
     hMergeRuns.close();
 
     cout << "Size of the vector of vectors run by run " << vEffBothLB_runs.size() << "\t" << vEffBPLB_runs.size() << "\t" << vEffNBPLB_runs.size() << endl;
-    cout << "Size of the vector of vectors merged " << vEffBothLB_merged[0].size() << "\t" << vEffBPLB_merged.size() << "\t" << vEffNBPLB_merged.size() << endl;
+    cout << "Size of the vector of vectors merged " << vEffBothLB_merged.size() << "\t" << vEffBPLB_merged.size() << "\t" << vEffNBPLB_merged.size() << endl;
 
     cout << "size of average run: " << averageRun.size() << endl;
     for (unsigned int i = 0; i < averageRun.size(); i++) {
@@ -510,15 +521,16 @@ void effByRun() { //Main function
     vector<float> errEffLB1,errEffLB2,errEffLB3,errEffLB4;
 
     for (unsigned int i = 0; i < vRun.size(); i++) {
-        effLB1.push_back(vEffBPLB_runs[i][10]);
-        effLB2.push_back(vEffBPLB_runs[i][35]);
-        effLB3.push_back(vEffBPLB_runs[i][55]);
-        effLB4.push_back(vEffBPLB_runs[i][145]);
+        cout << vEffBPLB_runs[i][10] << endl;
+        effLB1.push_back(vEffBPLB_runs[i][99]);
+        effLB2.push_back(vEffBPLB_runs[i][257]);
+        effLB3.push_back(vEffBPLB_runs[i][450]);
+        effLB4.push_back(vEffBPLB_runs[i][500]);
 
-        errEffLB1.push_back(vErrEffBPLB_runs[i][10]);
-        errEffLB2.push_back(vErrEffBPLB_runs[i][35]);
+        errEffLB1.push_back(vErrEffBPLB_runs[i][99]);
+        errEffLB2.push_back(vErrEffBPLB_runs[i][257]);
         errEffLB3.push_back(vErrEffBPLB_runs[i][55]);
-        errEffLB4.push_back(vErrEffBPLB_runs[i][145]);
+        errEffLB4.push_back(vErrEffBPLB_runs[i][500]);
     }
 
     //merged runs
@@ -567,13 +579,13 @@ void effByRun() { //Main function
 
     TMultiGraph *m = new TMultiGraph();
     m->Add(gEffLBrun);
-    //m->Add(gEffLBrun2);
-    //m->Add(gEffLBrun3);
-    //m->Add(gEffLBrun4);
+    m->Add(gEffLBrun2);
+    m->Add(gEffLBrun3);
+    m->Add(gEffLBrun4);
     m->Add(gEffLBmerged);
-    //m->Add(gEffLBmerged2);
-    //m->Add(gEffLBmerged3);
-    //m->Add(gEffLBmerged4);
+    m->Add(gEffLBmerged2);
+    m->Add(gEffLBmerged3);
+    m->Add(gEffLBmerged4);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
