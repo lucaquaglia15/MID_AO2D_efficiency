@@ -34,8 +34,10 @@ void calculateEfficiency() {
 
     o2::mid::Mapping mapping;
 
-    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root"; //pp
+    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root"; //pp
     //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23zzh_pass4_test1_QC1_small.root"; //Pb-Pb
+    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResultsLHC23zzn_apass3_all_I-A11_some.root";
+    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_PbPb_pass3_I-A11.root";
 
     TFile *fIn = new TFile(inFileName.c_str(),"READ");
     
@@ -368,9 +370,9 @@ void calculateEfficiency() {
         hEffLBplanes1D_both[i]->GetXaxis()->SetLabelFont(62);
         hEffLBplanes1D_both[i]->GetYaxis()->SetLabelFont(62);
         hEffLBplanes1D_both[i]->GetYaxis()->SetTitleOffset(1.1);
-        if (i == 0) {
-            lTot->AddEntry(hEffLBplanes1D_both[0],"LHC23 pass4 skimmed QC1","p");
-        }
+        //if (i == 0) {
+        //    lTot->AddEntry(hEffLBplanes1D_both[0],"LHC23 pass4 skimmed QC1","p");
+        //}
         hEffLBplanes1D_both[i]->Draw("P");
         lTot->Draw("SAME");
         cEffLB_plane_both[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/LB_bothPlanes_total_"+planeName[i]+".pdf").c_str());
