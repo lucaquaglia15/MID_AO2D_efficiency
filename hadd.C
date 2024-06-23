@@ -49,7 +49,9 @@ void hadd(const string mergedfile) {
     // root > .L hadd.C
     // root > hadd()
 
-    const char* filename_list = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat";
+    //const char* filename_list = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat";
+    const char* filename_list = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_PbPb_pass3_I-A11/merged_files/runs.dat";
+
     //const char* mergedfile = "Scan000775_HV1_CAEN.root"; 
 
     string line;
@@ -64,9 +66,9 @@ void hadd(const string mergedfile) {
     Target = TFile::Open( mergedfile.c_str() , "RECREATE" );
     FileList = new TList();
 
-    cout << "File to merge: \n";
+    //cout << "File to merge: \n";
     while(getline(myfile, line)) {
-    	cout << "\t" <<line << endl;
+    	//cout << "\t" <<line << endl;
     	FileList->Add( TFile::Open(line.c_str()) );
     }
 
@@ -147,7 +149,7 @@ void MergeRootfile( TDirectory *target, TList *sourcelist ) {
     } else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
         // it's a subdirectory
 
-        cout << "Found subdirectory " << obj->GetName() << endl;
+        //cout << "Found subdirectory " << obj->GetName() << endl;
 
         // create a new subdir of same name and title in the target file
         target->cd();
@@ -161,8 +163,8 @@ void MergeRootfile( TDirectory *target, TList *sourcelist ) {
     } else {
 
         // object is of no type that we know or can handle
-        cout << "Unknown object type, name: "
-        << obj->GetName() << " title: " << obj->GetTitle() << endl;
+        //cout << "Unknown object type, name: "
+        //<< obj->GetName() << " title: " << obj->GetTitle() << endl;
     }
 
     // now write the merged histogram (which is "in" obj) to the target file
