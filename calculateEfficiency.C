@@ -17,6 +17,7 @@
 #include <vector>
 #include <stdlib.h> 
 #include "TKey.h"
+#include "TLine.h"
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
 #include "MIDBase/DetectorParameters.h" //Detector parameters
@@ -34,10 +35,19 @@ void calculateEfficiency() {
 
     o2::mid::Mapping mapping;
 
+    //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
+    //string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
+    string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
+    
     //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root"; //pp
     //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23zzh_pass4_test1_QC1_small.root"; //Pb-Pb
     //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResultsLHC23zzn_apass3_all_I-A11_some.root";
-    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_PbPb_pass3_I-A11.root";
+    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_PbPb_pass3_I-A11.root";
+    
+    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_"+period+".root";
+
+    ofstream lowEff;
+    lowEff.open(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+".txt").c_str());
 
     TFile *fIn = new TFile(inFileName.c_str(),"READ");
     
@@ -118,7 +128,7 @@ void calculateEfficiency() {
     float errEffBothLB, errEffBPLB, errEffNBPLB;
 
     for (int i = 1; i <= nBinsPlane; i++) {
-        cout << i << "\t" << hFiredBothPlanesRPC->GetBinContent(i) << "\t" << hTotRPC->GetBinContent(i) << endl;
+        //cout << i << "\t" << hFiredBothPlanesRPC->GetBinContent(i) << "\t" << hTotRPC->GetBinContent(i) << endl;
 
         if (hTotRPC->GetBinContent(i) != 0) {
             effBothPlane = (hFiredBothPlanesPlane->GetBinContent(i)/hTotPlane->GetBinContent(i))*100;
@@ -208,8 +218,12 @@ void calculateEfficiency() {
     }
 
     for (int i = 1; i <= nBinsBoard; i++) {
-        cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
-
+        //cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
+        
+        if (hTotLB->GetBinContent(i) == 0) {
+            cout << "LB " <<  i << "\t" << hTotLB->GetBinContent(i) << endl;
+        }
+            
         if (hTotLB->GetBinContent(i) != 0) {
 
             effBothLB = (hFiredBothPlanesLB->GetBinContent(i)/hTotLB->GetBinContent(i))*100;
@@ -219,6 +233,26 @@ void calculateEfficiency() {
             errEffBothLB = TMath::Sqrt(effBothLB*(100-effBothLB)/hTotLB->GetBinContent(i));
             errEffBPLB = TMath::Sqrt(effBPLB*(100-effBPLB)/hTotLB->GetBinContent(i));
             errEffNBPLB = TMath::Sqrt(effNBPLB*(100-effNBPLB)/hTotLB->GetBinContent(i));
+
+            if (effBPLB <= 50) {
+                    //cout << "Eff <= 50 LB " << i << "\t eff BP \t" << effBPLB << "\t +- \t" << errEffBPLB << endl;
+                    lowEff << "50\t" << i << "\tBP\t" << effBPLB << "\t" << errEffBPLB << "\n";
+            }
+
+            else if (effBPLB > 50 && effBPLB <= 80) {
+                    //cout << "50 < Eff <= 80 LB " << i << "\t eff BP \t" << effBPLB << "\t +- \t" << errEffBPLB << endl;
+                    lowEff << "50_80\t" << i << "\tBP\t" << effBPLB << "\t" << errEffBPLB << "\n";
+            }
+
+            if (effNBPLB <= 50) {
+                    //cout << "Eff <= 50 LB " << i << "\t eff NBP \t" << effNBPLB << "\t +- \t" << errEffNBPLB << endl;
+                    lowEff << "50\t" << i << "\tNBP\t" << effNBPLB << "\t" << errEffNBPLB << "\n";
+            }
+
+            else if (effNBPLB > 50 && effNBPLB <= 80) {
+                    //cout << "50 < Eff <= 80 LB " << i << "\t eff NBP \t" << effNBPLB << "\t +- \t" << errEffNBPLB << endl;
+                    lowEff << "50_80\t" << i << "\tNBP\t" << effNBPLB << "\t" << errEffNBPLB << "\n";
+            }
 
             hEffLB_both->Fill(i,effBothLB);
             hEffLB_both->SetBinError(i,errEffBothLB);
@@ -262,6 +296,9 @@ void calculateEfficiency() {
             }
         }
     }
+
+    //Close output file where I save the low efficiency
+    lowEff.close();
 
     //Eff per plane
     TCanvas *cEffBotPlanesPlane = new TCanvas(); //Both
@@ -522,7 +559,7 @@ void calculateEfficiency() {
         fInPeriod[period] = new TFile(fileName[period].c_str(),"READ");
         fInPeriod[period]->cd();
         
-        cout << fileName[period] << endl;
+        //cout << fileName[period] << endl;
 
         TDirectoryFile *dPeriod = (TDirectoryFile*)fInPeriod[period]->Get("mid-efficiency");
         dPeriod->cd();
@@ -559,7 +596,7 @@ void calculateEfficiency() {
                 v_hEffLB_NBP[period]->Fill(i,effNBPLB);
                 v_hEffLB_NBP[period]->SetBinError(i,errEffNBPLB);
 
-                cout <<periods[period] << "\t" << effBothLB << "\t" << errEffBothLB << "\t" << hTotLBPeriod[period]->GetBinContent(i) << endl;
+                //cout <<periods[period] << "\t" << effBothLB << "\t" << errEffBothLB << "\t" << hTotLBPeriod[period]->GetBinContent(i) << endl;
 
                 //Efficiency per plane
                 if (i <= 234) {
