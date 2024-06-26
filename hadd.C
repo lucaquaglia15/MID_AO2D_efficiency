@@ -37,7 +37,7 @@ TFile *Target;
 void MergeRootfile( TDirectory *target, TList *sourcelist );
 
 
-void hadd(const string mergedfile) {
+void hadd(const string mergedfile, const string filename_list) {
     // Prepare the files to me merged
     if(gSystem->AccessPathName("hsimple1.root")) {
     gSystem->CopyFile("hsimple.root", "hsimple1.root");
@@ -49,14 +49,12 @@ void hadd(const string mergedfile) {
     // root > .L hadd.C
     // root > hadd()
 
-    //const char* filename_list = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/merged_files/runs.dat";
-    const char* filename_list = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_PbPb_pass3_I-A11/merged_files/runs.dat";
 
     //const char* mergedfile = "Scan000775_HV1_CAEN.root"; 
 
     string line;
     ifstream myfile;
-    myfile.open( filename_list );
+    myfile.open(filename_list.c_str());
 
     if(!myfile.is_open()) {
     	perror("Error open");
