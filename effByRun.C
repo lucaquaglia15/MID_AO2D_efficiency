@@ -44,12 +44,15 @@ int nBinsBoard = 936; //Number of LBs
 o2::ccdb::CcdbApi api; //CCDB API as global object
 o2::mid::Mapping mapping; //MID mapping object to construct ccdb object
 
+vector<int> markerStyle{50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,70,71,72,73,74,75};
+vector<TGraphErrors*> gEffPerRun;
+
 //Function to upload to ccdb
 void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB, TH1F *hTotLB, long int startValidity, long int endValidity) {
 
     //api.init("http://alice-ccdb.cern.ch"); //Open connection to ALICE CCDB
-    api.init("http://ccdb-test.cern.ch:8080"); //Open connection to test CCDB
-    //api.init("http://alice-ccdb.cern.ch/Users/l/lquaglia");
+    //api.init("http://ccdb-test.cern.ch:8080"); //Open connection to test CCDB
+    api.init("http://alice-ccdb.cern.ch/Users/l/lquaglia");
 
     //Variables used in the loop
     int LB936 = 0; //LB 1-> 936
@@ -93,8 +96,9 @@ void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB,
     }
     //Upload to ccdb
     std::map<std::string, std::string> md; //Metada map
-    api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, startValidity, endValidity); //Upload in CCDB
+    //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, startValidity, endValidity); //Upload in CCDB
     //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency/LHC23_PbPb_pass3_I-A11_perRun", md, startValidity, endValidity); //Upload in CCDB
+    api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency/LHC23_PbPb_pass3_fullTPC_perRun", md, startValidity, endValidity); //Upload in CCDB
 } //end of uploadToCCDB
 
 //Function to delete folders with data from multiple runs merge -> called everytime the code is launched to clean up in case we change
@@ -271,17 +275,37 @@ void effByRun() { //Main function
     //Merged runs
     vector<vector<float>> vEffBothLB_merged, vEffBPLB_merged, vEffNBPLB_merged;
     vector<vector<float>> vErrEffBothLB_merged, vErrEffBPLB_merged, vErrEffNBPLB_merged;
-
+    
     //Plane name
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
     //General path to add flexibility to the code + period name
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
-    string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
+    //string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
+    string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
     string globalPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/";
 
+    ifstream hLowEff;
+    hLowEff.open(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+".txt").c_str());
+
+    string lowEffType, planeType, plusMinus;
+    int LBnumber;
+    float lowEfficiency, errLowEfficiency;
+    vector<int> LBfiftyBP, LBfiftyNBP; //LB with efficiency < 50% on BP and NBP
+
+    while (hLowEff >> lowEffType >> LBnumber >> planeType >> lowEfficiency >> errLowEfficiency) {
+        //cout << lowEffType << "\t" << LBnumber << "\t" << planeType << "\t" << lowEfficiency << "\t" << errLowEfficiency << endl;
+        if (lowEffType == "50" && planeType == "BP") {
+            LBfiftyBP.push_back(LBnumber);
+        }
+        else if (lowEffType == "50" && planeType == "NBP") {
+            LBfiftyNBP.push_back(LBnumber);
+        }
+    }
+    //cout << LBfiftyBP.size() << "\t" << LBfiftyNBP.size() << endl;
+
     //Path of the merged file, run-by-run
-    string runPath = globalPath+"merged_files/"; 
+    string runPath = globalPath+"runs/"; 
 
     //Path for the .txt file of the run list of the period
     string runNumbers = globalPath+"run_list.txt"; 
@@ -296,8 +320,8 @@ void effByRun() { //Main function
 
     //Open txt file of start/end dates of the runs
     ifstream hDate;
-    //hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed_QC1/run_dates.txt");
-    hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_PbPb_pass3_I-A11/run_dates.txt");
+    hDate.open(runDates.c_str());
+    //hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_PbPb_pass3_I-A11/run_dates.txt");
     
     //Get start and end of each run
     long int runForDate, start, end;
@@ -378,7 +402,8 @@ void effByRun() { //Main function
             //meaning that it's the first run to be analyzed
             cout << "here" << endl;
             if (!open) {
-                hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/merged_files/runs.dat");
+                //hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/merged_files/runs.dat");
+                hMergeRuns.open(runPath+"runs.dat");
                 open = true;
             }
             hMergeRuns << runFileName << "\n"; //Write to output file
@@ -405,9 +430,10 @@ void effByRun() { //Main function
             gSystem->mkdir((runPath+"mergedRuns"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
             string mergeFilesForHadd = '"'+runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            string mergeRunListForHadd = '"'+runPath+"runs.dat"+'"';
             string mergeFiles = runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root";
             cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
-            gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
+            gROOT->ProcessLine(Form("hadd(%s,%s)",mergeFilesForHadd.c_str(),mergeRunListForHadd.c_str()));
             //Call calculateEfficiency function on merged files
             last = vEnd.at(iRun);
             calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
@@ -434,9 +460,10 @@ void effByRun() { //Main function
             gSystem->mkdir((runPath+"mergedRuns"+to_string(mergeCounter)).c_str());
             //Execute the hadd code (already loaded before the loop)
             string mergeFilesForHadd = '"'+runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
+            string mergeRunListForHadd = '"'+runPath+"runs.dat"+'"';
             string mergeFiles = runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root";
             cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
-            gROOT->ProcessLine(Form("hadd(%s)",mergeFilesForHadd.c_str()));
+            gROOT->ProcessLine(Form("hadd(%s,%s)",mergeFilesForHadd.c_str(),mergeRunListForHadd.c_str()));
             //Call calculateEfficiency function on merged files
             last = vEnd.at(iRun);
             calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
@@ -447,8 +474,13 @@ void effByRun() { //Main function
             avgCalculation = 0;
         }
 
+        //Calculate eff per run
         for (int i = 1; i <= nBinsBoard; i++) {
             //cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
+
+            //if (hTotLB->GetBinContent(i) == 0) {
+            //    cout << "Run: " << vRun.at(iRun) << " LB " <<  i << "\t" << hTotLB->GetBinContent(i) << endl;
+            //}
 
             if (hTotLB->GetBinContent(i) != 0) {
 
@@ -469,6 +501,19 @@ void effByRun() { //Main function
                 vErrEffBothLB.push_back(errEffBothLB);
                 vErrEffBPLB.push_back(errEffBPLB);
                 vErrEffNBPLB.push_back(errEffNBPLB);
+            }
+
+            //I noticed that sometimes in a given run there is a LB with 0 total counts
+            else {
+                //Fill vector for efficiency per LB in the run
+                vEffBothLB.push_back(0);
+                vEffBPLB.push_back(0);
+                vEffNBPLB.push_back(0);
+                
+                //Fill vector for error on efficiency per LB in the run
+                vErrEffBothLB.push_back(0);
+                vErrEffBPLB.push_back(0);
+                vErrEffNBPLB.push_back(0);
             }
         }
 
@@ -496,13 +541,49 @@ void effByRun() { //Main function
     //Close .dat file of runs to be merged
     hMergeRuns.close();
 
-    cout << "Size of the vector of vectors run by run " << vEffBothLB_runs.size() << "\t" << vEffBPLB_runs.size() << "\t" << vEffNBPLB_runs.size() << endl;
+    cout << "Size of the vector of vectors run by run " << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
     cout << "Size of the vector of vectors merged " << vEffBothLB_merged.size() << "\t" << vEffBPLB_merged.size() << "\t" << vEffNBPLB_merged.size() << endl;
-
+    
     cout << "size of average run: " << averageRun.size() << endl;
     for (unsigned int i = 0; i < averageRun.size(); i++) {
         cout << averageRun.at(i) << endl;
     }
+
+    //cout << "vRun.back() - vRun.front() " << vRun.back() - vRun.front() << endl;
+    //cout << "(vRun.back() - vRun.front())/vRun.size() " << (vRun.back() - vRun.front())/vRun.size() << endl;
+    //int binSizeX = (vRun.back() - vRun.front())/vRun.size();
+
+    vector<int> vBinsX;
+    for (int i = 0; i < vRun.size(); i++) {
+        vBinsX.push_back(i);
+    }
+
+    vector<TLine*> vertRuns;
+    for (int i = 0; i < vRun.size(); i++) {
+        TLine *l = new TLine(i,0.5,i,936.5);
+        vertRuns.push_back(l);
+    }
+
+    TH2F *hEffByRunAllLB = new TH2F("hEffByRunAllLB","hEffByRunAllLB",vBinsX.size(),vBinsX.front()-0.5,vBinsX.back()-0.5,vEffBPLB_runs[0].size(),0.5,936.5);
+
+    for (unsigned int iRun = 1; iRun <= vRun.size(); iRun++) {
+        if (iRun % 5 == 0) {
+            hEffByRunAllLB->GetXaxis()->SetBinLabel(iRun-1,(to_string((int)vRun.at(iRun-1))).c_str());
+        }
+        for (unsigned LB = 1; LB <= vEffBPLB_runs[iRun-1].size(); LB++) {
+            hEffByRunAllLB->SetBinContent(iRun,LB,vEffBPLB_runs[iRun-1][LB-1]);
+        }
+    }
+
+    TCanvas *cEffByRunAllLB = new TCanvas();
+    cEffByRunAllLB->cd();
+    hEffByRunAllLB->GetXaxis()->SetNoExponent(1);
+    hEffByRunAllLB->SetStats(0);
+    hEffByRunAllLB->Draw("COLZ");
+    //Draw vertical lines - one per run
+    //for (int i = 0; i < vRun.size(); i++) {
+    //    vertRuns.at(i)->Draw("SAME");
+    //}
     
     //Structure of the vector is the following
     // (LB1...............LB936) -> first run
@@ -517,20 +598,24 @@ void effByRun() { //Main function
     //In the plot we want to show columns, in order to do that we have to declare new vectors and save the data of a column inside them
     //Get efficiency for a given LB as a function of the run number
     //run by run
-    vector<float> effLB1,effLB2,effLB3,effLB4;
-    vector<float> errEffLB1,errEffLB2,errEffLB3,errEffLB4;
+    vector<float> effLB1,effLB2,effLB3,effLB4,effLB5,effLB6;
+    vector<float> errEffLB1,errEffLB2,errEffLB3,errEffLB4,errEffLB5,errEffLB6;
 
     for (unsigned int i = 0; i < vRun.size(); i++) {
         cout << vEffBPLB_runs[i][10] << endl;
-        effLB1.push_back(vEffBPLB_runs[i][99]);
-        effLB2.push_back(vEffBPLB_runs[i][257]);
-        effLB3.push_back(vEffBPLB_runs[i][450]);
-        effLB4.push_back(vEffBPLB_runs[i][500]);
+        effLB1.push_back(vEffBPLB_runs[i][274]);
+        effLB2.push_back(vEffBPLB_runs[i][345]);
+        effLB3.push_back(vEffBPLB_runs[i][638]);
+        effLB4.push_back(vEffBPLB_runs[i][703]);
+        effLB5.push_back(vEffBPLB_runs[i][791]);
+        effLB6.push_back(vEffBPLB_runs[i][862]);
 
-        errEffLB1.push_back(vErrEffBPLB_runs[i][99]);
-        errEffLB2.push_back(vErrEffBPLB_runs[i][257]);
-        errEffLB3.push_back(vErrEffBPLB_runs[i][55]);
-        errEffLB4.push_back(vErrEffBPLB_runs[i][500]);
+        errEffLB1.push_back(vErrEffBPLB_runs[i][274]);
+        errEffLB2.push_back(vErrEffBPLB_runs[i][345]);
+        errEffLB3.push_back(vErrEffBPLB_runs[i][638]);
+        errEffLB4.push_back(vErrEffBPLB_runs[i][703]);
+        errEffLB5.push_back(vErrEffBPLB_runs[i][791]);
+        errEffLB6.push_back(vErrEffBPLB_runs[i][862]);
     }
 
     //merged runs
@@ -553,6 +638,8 @@ void effByRun() { //Main function
     TGraphErrors *gEffLBrun2 = new TGraphErrors(vRun.size(),&vRun[0],&effLB2[0],NULL,&errEffLB2[0]);
     TGraphErrors *gEffLBrun3 = new TGraphErrors(vRun.size(),&vRun[0],&effLB3[0],NULL,&errEffLB3[0]);
     TGraphErrors *gEffLBrun4 = new TGraphErrors(vRun.size(),&vRun[0],&effLB4[0],NULL,&errEffLB4[0]);
+    TGraphErrors *gEffLBrun5 = new TGraphErrors(vRun.size(),&vRun[0],&effLB5[0],NULL,&errEffLB5[0]);
+    TGraphErrors *gEffLBrun6 = new TGraphErrors(vRun.size(),&vRun[0],&effLB6[0],NULL,&errEffLB6[0]);
 
     TGraphErrors *gEffLBmerged = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB1merged[0],NULL,&errEffLB1merged[0]);
     TGraphErrors *gEffLBmerged2 = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB2merged[0],NULL,&errEffLB2merged[0]);
@@ -560,13 +647,17 @@ void effByRun() { //Main function
     TGraphErrors *gEffLBmerged4 = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB4merged[0],NULL,&errEffLB4merged[0]);
 
     gEffLBrun->SetMarkerStyle(8);
-    gEffLBrun2->SetMarkerColor(kGreen);
+    gEffLBrun->SetMarkerColor(kBlack);
     gEffLBrun2->SetMarkerStyle(8);
     gEffLBrun2->SetMarkerColor(kRed);
     gEffLBrun3->SetMarkerStyle(8);
-    gEffLBrun3->SetMarkerColor(kGreen);
+    gEffLBrun3->SetMarkerColor(kMagenta);
     gEffLBrun4->SetMarkerStyle(8);
-    gEffLBrun4->SetMarkerColor(kMagenta);
+    gEffLBrun4->SetMarkerColor(kBlue);
+    gEffLBrun5->SetMarkerStyle(8);
+    gEffLBrun5->SetMarkerColor(kGreen);
+    gEffLBrun6->SetMarkerStyle(8);
+    gEffLBrun6->SetMarkerColor(kYellow+4);
 
     gEffLBmerged->SetMarkerStyle(24);
     gEffLBmerged2->SetMarkerColor(kGreen);
@@ -582,14 +673,20 @@ void effByRun() { //Main function
     m->Add(gEffLBrun2);
     m->Add(gEffLBrun3);
     m->Add(gEffLBrun4);
-    m->Add(gEffLBmerged);
-    m->Add(gEffLBmerged2);
-    m->Add(gEffLBmerged3);
-    m->Add(gEffLBmerged4);
+    m->Add(gEffLBrun5);
+    m->Add(gEffLBrun6);
+    //m->Add(gEffLBmerged);
+    //m->Add(gEffLBmerged2);
+    //m->Add(gEffLBmerged3);
+    //m->Add(gEffLBmerged4);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
     m->GetXaxis()->SetNoExponent(1);
     m->GetYaxis()->SetRangeUser(0,105);
     m->Draw("AP");
+
+    hLowEff.close();
+    hRun.close();
+    hDate.close();
 }
