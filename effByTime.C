@@ -802,10 +802,7 @@ void effByTime() { //Main function
 
     gStyle->SetTitleFontSize(0.07);
     
-    for (int i = 0; i < nBinsRPC; i++) {
-        
-        //cout << "i \t" << i << "\t det name: \t" << o2::mid::detparams::getDEName(i) << endl;
-        
+    for (int i = 0; i < nBinsRPC; i++) {        
         if (i >= 0 && i <= 8) { //MT11 ok
             cEffPerRPCBoth_MT11->cd(i+18-(3*i));
         }
@@ -835,11 +832,10 @@ void effByTime() { //Main function
         }
         //---//
         gEffPerRunRPCBoth.at(i)->SetMarkerStyle(8);
-        gEffPerRunRPCBoth.at(i)->SetMarkerSize(1);
+        gEffPerRunRPCBoth.at(i)->SetMarkerSize(0.7);
         gEffPerRunRPCBoth.at(i)->SetMarkerColor(kBlack);
         string detName = o2::mid::detparams::getDEName(i);
         gEffPerRunRPCBoth.at(i)->SetTitle(("RPC" + to_string(i) + " Both planes -> " + detName).c_str());
-        //gEffPerRunRPCBoth.at(i)->SetTitleSize((0.07));
         if (isTimeRPC) {
             gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTimeDisplay(1);
             gEffPerRunRPCBoth.at(i)->GetXaxis()->SetNdivisions(503);
@@ -866,72 +862,148 @@ void effByTime() { //Main function
     }
     
     //BP
-    /*TCanvas *cEffPerPlaneBP = new TCanvas();
-    cEffPerPlaneBP->Divide(1,4);
-    for (int i = 0; i < nBinsPlane; i++) {
-        cEffPerPlaneBP->cd(i+1);
-        gEffPerRunPlaneBP.at(i)->SetMarkerStyle(8);
-        gEffPerRunPlaneBP.at(i)->SetMarkerSize(1);
-        gEffPerRunPlaneBP.at(i)->SetMarkerColor(kRed);
-        gEffPerRunPlaneBP.at(i)->SetTitle((planeName[i] + " BP").c_str());
+    TCanvas *cEffPerRPCBP_MT11 = new TCanvas();
+    cEffPerRPCBP_MT11->Divide(2,9);
+
+    TCanvas *cEffPerRPCBP_MT12 = new TCanvas();
+    cEffPerRPCBP_MT12->Divide(2,9);
+
+    TCanvas *cEffPerRPCBP_MT21 = new TCanvas();
+    cEffPerRPCBP_MT21->Divide(2,9);
+
+    TCanvas *cEffPerRPCBP_MT22 = new TCanvas();
+    cEffPerRPCBP_MT22->Divide(2,9);
+
+    for (int i = 0; i < nBinsRPC; i++) {
+        if (i >= 0 && i <= 8) { //MT11 ok
+            cEffPerRPCBP_MT11->cd(i+18-(3*i));
+        }
+        else if (i >= 36 && i <= 44) { //MT11 ok
+            cEffPerRPCBP_MT11->cd(i-19-(3*(i-36)));
+        }
+        //---//
+        else if (i >= 9 && i <= 17){ //MT12 ok
+            cEffPerRPCBP_MT12->cd(i+9-(3*(i-9)));
+        }
+        else if (i >= 45 && i <= 53){ //MT12 ok
+            cEffPerRPCBP_MT12->cd(i-28-(3*(i-45)));
+        }
+        //---//
+        else if (i >= 18 && i <= 26) { //MT21 ok
+            cEffPerRPCBP_MT21->cd(i-(3*(i-18)));
+        }
+        else if (i >= 54 && i <= 62) { //MT21 ok
+            cEffPerRPCBP_MT21->cd(i-37-(3*(i-54)));
+        }
+        //---//
+        else if (i >= 27 && i <= 35) { //MT22 ok
+            cEffPerRPCBP_MT22->cd(i-9-(3*(i-27)));
+        }
+        else if (i >= 63 && i <= 71) { //MT22 ok
+            cEffPerRPCBP_MT22->cd(i-46-(3*(i-63)));
+        }
+        
+        gEffPerRunRPCBP.at(i)->SetMarkerStyle(8);
+        gEffPerRunRPCBP.at(i)->SetMarkerSize(0.7);
+        gEffPerRunRPCBP.at(i)->SetMarkerColor(kRed);
+        string detName = o2::mid::detparams::getDEName(i);
+        gEffPerRunRPCBP.at(i)->SetTitle(("RPC" + to_string(i) + " BP -> " + detName).c_str());
         if (isTimeRPC) {
-            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeDisplay(1);
-            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetNdivisions(503);
-            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
-            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
-            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+            gEffPerRunRPCBP.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunRPCBP.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunRPCBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunRPCBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunRPCBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
         }
         else {
-            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitle("Run #");
+            gEffPerRunRPCBP.at(i)->GetXaxis()->SetTitle("Run #");
         }
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleSize(0.07);
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleFont(62);
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelSize(0.07);
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelFont(62);
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleSize(0.07);
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleFont(62);
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelSize(0.07);
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelFont(62);
-        //gEffPerRunPlaneBP.at(i)->GetYaxis()->SetRangeUser(85,100);
-        gEffPerRunPlaneBP.at(i)->Draw("AP");
+        gEffPerRunRPCBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunRPCBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunRPCBP.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunRPCBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunRPCBP.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunRPCBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunRPCBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunRPCBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunRPCBP.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunRPCBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunRPCBP.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunRPCBP.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunRPCBP.at(i)->Draw("AP");
     }
     
     //NBP
-    TCanvas *cEffPerPlaneNBP = new TCanvas();
-    cEffPerPlaneNBP->Divide(1,4);
-    for (int i = 0; i < nBinsPlane; i++) {
-        cEffPerPlaneNBP->cd(i+1);
-        gEffPerRunPlaneNBP.at(i)->SetMarkerStyle(8);
-        gEffPerRunPlaneNBP.at(i)->SetMarkerSize(1);
-        gEffPerRunPlaneNBP.at(i)->SetMarkerColor(kGreen+3);
-        gEffPerRunPlaneNBP.at(i)->SetTitle((planeName[i] + " NBP").c_str());
+    TCanvas *cEffPerRPCNBP_MT11 = new TCanvas();
+    cEffPerRPCNBP_MT11->Divide(2,9);
+
+    TCanvas *cEffPerRPCNBP_MT12 = new TCanvas();
+    cEffPerRPCNBP_MT12->Divide(2,9);
+
+    TCanvas *cEffPerRPCNBP_MT21 = new TCanvas();
+    cEffPerRPCNBP_MT21->Divide(2,9);
+
+    TCanvas *cEffPerRPCNBP_MT22 = new TCanvas();
+    cEffPerRPCNBP_MT22->Divide(2,9);
+
+    for (int i = 0; i < nBinsRPC; i++) {
+        if (i >= 0 && i <= 8) { //MT11 ok
+            cEffPerRPCNBP_MT11->cd(i+18-(3*i));
+        }
+        else if (i >= 36 && i <= 44) { //MT11 ok
+            cEffPerRPCNBP_MT11->cd(i-19-(3*(i-36)));
+        }
+        //---//
+        else if (i >= 9 && i <= 17){ //MT12 ok
+            cEffPerRPCNBP_MT12->cd(i+9-(3*(i-9)));
+        }
+        else if (i >= 45 && i <= 53){ //MT12 ok
+            cEffPerRPCNBP_MT12->cd(i-28-(3*(i-45)));
+        }
+        //---//
+        else if (i >= 18 && i <= 26) { //MT21 ok
+            cEffPerRPCNBP_MT21->cd(i-(3*(i-18)));
+        }
+        else if (i >= 54 && i <= 62) { //MT21 ok
+            cEffPerRPCNBP_MT21->cd(i-37-(3*(i-54)));
+        }
+        //---//
+        else if (i >= 27 && i <= 35) { //MT22 ok
+            cEffPerRPCNBP_MT22->cd(i-9-(3*(i-27)));
+        }
+        else if (i >= 63 && i <= 71) { //MT22 ok
+            cEffPerRPCNBP_MT22->cd(i-46-(3*(i-63)));
+        }
+        
+        gEffPerRunRPCNBP.at(i)->SetMarkerStyle(8);
+        gEffPerRunRPCNBP.at(i)->SetMarkerSize(0.7);
+        gEffPerRunRPCNBP.at(i)->SetMarkerColor(kGreen);
+        string detName = o2::mid::detparams::getDEName(i);
+        gEffPerRunRPCNBP.at(i)->SetTitle(("RPC" + to_string(i) + " NBP -> " + detName).c_str());
         if (isTimeRPC) {
-            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeDisplay(1);
-            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetNdivisions(503);
-            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
-            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
-            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+            gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunRPCNBP.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
         }
         else {
-            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitle("Run #");
+            gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTitle("Run #");
         }
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleSize(0.07);
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleFont(62);
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelSize(0.07);
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelFont(62);
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleSize(0.07);
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleFont(62);
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelSize(0.07);
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelFont(62);
-        //gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
-        gEffPerRunPlaneNBP.at(i)->Draw("AP");
-    }*/
+        gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunRPCNBP.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunRPCNBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunRPCNBP.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunRPCNBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunRPCNBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunRPCNBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunRPCNBP.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunRPCNBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunRPCNBP.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunRPCNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunRPCNBP.at(i)->Draw("AP");
+    }
     
     hRun_pp2023.close();
     hDate_pp2023.close();
