@@ -23,7 +23,7 @@
 #include "TKey.h"
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
-#include "MIDBase/DetectorParameters.h" //Detector parameters
+#include "MIDBase/DetectorParameters.h" //Detector parameter
 #include "MIDBase/Mapping.h" //MID mapping
 #include "DataFormatsMID/Track.h" //MID track from O2
 #include "DataFormatsMID/ChEffCounter.h" //Chamber efficiency counter
@@ -49,179 +49,148 @@ vector<int> markerColor{1,2,3,4,5,6,7,8,9};
 
 void effByTime() { //Main function
 
+    //Per plane
     double effBothPlane = 0, effBPPlane = 0, effNBPPlane =0;
     double errEffBothPlane = 0, errEffBPPlane = 0, errEffNBPPlane = 0;
 
-    //Run by run
+    //Per RPC
+    double effBothRPC = 0, effBPRPC = 0, effNBPPRPC =0;
+    double errEffBothRPC = 0, errEffBPRPC = 0, errEffNBPRPC = 0;
+
+    //Run by run - Plane
     vector<double> vEffBoth_Planes, vEffBP_Planes, vEffNBP_Planes;
     vector<double> vErrEffBoth_Planes, vErrEffBP_Planes, vErrEffNBP_Planes;
 
-    //Run by run
     vector<vector<double>> vEffBoth_Planes_runs, vEffBP_Planes_runs, vEffNBP_Planes_runs;
     vector<vector<double>> vErrEffBoth_Planes_runs, vErrEffBP_Planes_runs, vErrEffNBP_Planes_runs;
+
+    //Run by run - RPC
+    vector<double> vEffBoth_RPC, vEffBP_RPC, vEffNBP_RPC;
+    vector<double> vErrEffBoth_RPC, vErrEffBP_RPC, vErrEffNBP_RPC;
+    
+    vector<vector<double>> vEffBoth_RPC_runs, vEffBP_RPC_runs, vEffNBP_RPC_runs;
+    vector<vector<double>> vErrEffBoth_RPC_runs, vErrEffBP_RPC_runs, vErrEffNBP_RPC_runs;
     
     //Plane name
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
     //General path to add flexibility to the code + period name
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
-    string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
+    string period_pp2023 = "LHC23_pass4_skimmed"; //pp skimmed QC data of 2023 pass 4
+    string period_PbPb2023 = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
     //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
     //string period = "LHC22o_pass7_minBias";
     
-    string globalPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/";
-
-    /*ifstream hLowEff;
-    hLowEff.open(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+".txt").c_str());
-
-    string lowEffType, planeType, plusMinus;
-    int LBnumber;
-    double lowEfficiency, errLowEfficiency;
-    vector<int> LBfiftyBP, LBfiftyNBP; //LB with efficiency < 50% on BP and NBP
-    vector<int> LBfifty_eightyBP, LBfifty_eightyNBP; //LB with 50% < efficiency < 80% on BP and NBP
-    vector<int> LBeighty_ninetyBP, LBeighty_ninetyNBP; //LB with 80% < efficiency < 90% on BP and NBP
-    vector<int> LBninety_ninetyfiveBP, LBninety_ninetyfiveNBP; //LB with 90% < efficiency < 95% on BP and NBP
-    vector<int> LBninetyfiveBP, LBninetyfiveNBP; //LB with efficiency > 95% on BP and NBP
-
-    while (hLowEff >> lowEffType >> LBnumber >> planeType >> lowEfficiency >> errLowEfficiency) {
-        //cout << lowEffType << "\t" << LBnumber << "\t" << planeType << "\t" << lowEfficiency << "\t" << errLowEfficiency << endl;
-        if (lowEffType == "50" && planeType == "BP") {
-            LBfiftyBP.push_back(LBnumber);
-        }
-        else if (lowEffType == "50" && planeType == "NBP") {
-            LBfiftyNBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "50_80" && planeType == "BP") {
-            LBfifty_eightyBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "50_80" && planeType == "NBP") {
-            LBfifty_eightyNBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "80_90" && planeType == "BP") {
-            LBeighty_ninetyBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "80_90" && planeType == "NBP") {
-            LBeighty_ninetyNBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "90_95" && planeType == "BP") {
-            LBninety_ninetyfiveBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "90_95" && planeType == "NBP") {
-            LBninety_ninetyfiveNBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "95" && planeType == "BP") {
-            LBninetyfiveBP.push_back(LBnumber);
-        }
-        else if(lowEffType == "95" && planeType == "NBP") {
-            LBninetyfiveNBP.push_back(LBnumber);
-        }
-    }
-    //cout << LBfiftyBP.size() << "\t" << LBfiftyNBP.size() << endl;
-    //Placeholder labels for histogram
-    vector<int> binsX;
-    for (int i = 0; i < 5; i++) {
-        binsX.push_back(i);
-    }
-
-    vector<string> labelsEff {"50","50_80","80_90","90_95","95"};
-
-    //Eff ranges per LB on BP
-    TH1F *BPboardsEff = new TH1F("BPboardsEff","BPboardsEff",binsX.size(),binsX.front()+0.5,binsX.back()+0.5);
-    BPboardsEff->SetBinContent(1,LBfiftyBP.size());
-    BPboardsEff->SetBinContent(2,LBfifty_eightyBP.size());
-    BPboardsEff->SetBinContent(3,LBeighty_ninetyBP.size());
-    BPboardsEff->SetBinContent(4,LBninety_ninetyfiveBP.size());
-    BPboardsEff->SetBinContent(5,LBninetyfiveBP.size());
-
-    BPboardsEff->GetXaxis()->SetTitle("BP efficiency [%]");
-    BPboardsEff->GetYaxis()->SetTitle("Normalized counts");
-    BPboardsEff->Scale(1/BPboardsEff->Integral());
-    BPboardsEff->GetYaxis()->SetRangeUser(0,1);
-
-    for (int i = 0; i < binsX.size(); i++) {
-        BPboardsEff->GetXaxis()->SetBinLabel(i+1,(labelsEff.at(i)).c_str());
-    }
-
-    TCanvas *cEffRangeBP = new TCanvas();
-    cEffRangeBP->cd();
-    cEffRangeBP->SetTitle(("BPboardsEff_"+ period).c_str());
-    cEffRangeBP->SetCanvasSize(1200,1200);
-    BPboardsEff->SetStats(0);
-    BPboardsEff->SetLineWidth(3);    
-    BPboardsEff->Draw("HISTO");
-    cEffRangeBP->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/BPboardsEff_"+ period+".png").c_str());
-
-    //Eff ranges per LB on NBP
-    TH1F *NBPboardsEff = new TH1F("NBPboardsEff","NBPboardsEff",binsX.size(),binsX.front()+0.5,binsX.back()+0.5);
-    NBPboardsEff->SetBinContent(1,LBfiftyNBP.size());
-    NBPboardsEff->SetBinContent(2,LBfifty_eightyNBP.size());
-    NBPboardsEff->SetBinContent(3,LBeighty_ninetyNBP.size());
-    NBPboardsEff->SetBinContent(4,LBninety_ninetyfiveNBP.size());
-    NBPboardsEff->SetBinContent(5,LBninetyfiveNBP.size());
-
-    NBPboardsEff->GetXaxis()->SetTitle("NBP efficiency [%]");
-    NBPboardsEff->GetYaxis()->SetTitle("Normalized counts");
-    NBPboardsEff->Scale(1/NBPboardsEff->Integral());
-    NBPboardsEff->GetYaxis()->SetRangeUser(0,1);
-
-    for (int i = 0; i < binsX.size(); i++) {
-        NBPboardsEff->GetXaxis()->SetBinLabel(i+1,(labelsEff.at(i)).c_str());
-    }
-
-    TCanvas *cEffRangeNBP = new TCanvas();
-    cEffRangeNBP->cd();
-    cEffRangeNBP->SetTitle(("NBPboardsEff_"+ period).c_str());
-    cEffRangeNBP->SetCanvasSize(1200,1200);
-    NBPboardsEff->SetStats(0);
-    NBPboardsEff->SetLineWidth(3);
-    NBPboardsEff->Draw("HISTO");
-    cEffRangeNBP->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/NBPboardsEff_"+ period+".png").c_str());*/
+    //pp
+    string globalPath_pp2023 = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period_pp2023+"/";
+    //PbPb
+    string globalPath_PbPb2023 = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period_PbPb2023+"/";
 
     //Path of the merged file, run-by-run
-    string runPath = globalPath+"runs/";
+    //pp
+    string runPath_pp2023 = globalPath_pp2023+"runs/";
+    //PbPb
+    string runPath_PbPb2023 = globalPath_PbPb2023+"runs/";
 
     //Path for the .txt file of the run list of the period
-    string runNumbers = globalPath+"run_list.txt"; 
-    string runDates = globalPath+"run_dates.txt";
+    //pp
+    string runNumbers_pp2023 = globalPath_pp2023+"run_list.txt"; 
+    string runDates_pp2023 = globalPath_pp2023+"run_dates.txt";
+    //PbPb
+    string runNumbers_PbPb2023 = globalPath_PbPb2023+"run_list.txt"; 
+    string runDates_PbPb2023 = globalPath_PbPb2023+"run_dates.txt";
+    //IR PbPb
+    string fIR_PbPb2023 = globalPath_PbPb2023+"run_IR.txt"; 
 
     //Open txt file of runs
-    ifstream hRun;
-    hRun.open(runNumbers.c_str());
+    //pp
+    ifstream hRun_pp2023;
+    hRun_pp2023.open(runNumbers_pp2023.c_str());
+    //PbPb
+    ifstream hRun_PbPb2023;
+    hRun_PbPb2023.open(runNumbers_PbPb2023.c_str());
 
     //Open txt file of start/end dates of the runs
-    ifstream hDate;
-    hDate.open(runDates.c_str());
-    //hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_PbPb_pass3_I-A11/run_dates.txt");
+    //pp
+    ifstream hDate_pp2023;
+    hDate_pp2023.open(runDates_pp2023.c_str());
+    //PbPb
+    ifstream hDate_PbPb2023;
+    hDate_PbPb2023.open(runDates_PbPb2023.c_str());
+
+    //Open txt file for IR PbPb 2023
+    ifstream hIR_PbPb2023;
+    hIR_PbPb2023.open(fIR_PbPb2023.c_str());
     
     //Get start and end of each run
-    long int runForDate;
-    double start, end;
-    vector<long int> vRunForDate;
-    vector<double> vStart, vEnd;
+    //pp
+    long int runForDate_pp2023;
+    double start_pp2023, end_pp2023;
+    vector<long int> vRunForDate_pp2023;
+    vector<double> vStart_pp2023, vEnd_pp2023;
+    vector<double> vStart_2023;
     
-    while (hDate >> runForDate >> start >> end){
-        vRunForDate.push_back(runForDate);
-        vStart.push_back(start);
-        vEnd.push_back(end);
+    while (hDate_pp2023 >> runForDate_pp2023 >> start_pp2023 >> end_pp2023){
+        vRunForDate_pp2023.push_back(runForDate_pp2023);
+        vStart_pp2023.push_back(start_pp2023);
+        vEnd_pp2023.push_back(end_pp2023);
+        vStart_2023.push_back(start_pp2023);
+        cout << start_pp2023 << "\t" << start_pp2023/1000 << endl;
+        printf("start_pp2023: %f \t start_pp2023/1000: %f",start_pp2023,start_pp2023/1000);
+    }
+    //PbPb
+    long int runForDate_PbPb2023;
+    double start_PbPb2023, end_PbPb2023;
+    vector<long int> vRunForDate_PbPb2023;
+    vector<double> vStart_PbPb2023, vEnd_PbPb2023;
+    
+    while (hDate_PbPb2023 >> runForDate_PbPb2023 >> start_PbPb2023 >> end_PbPb2023){
+        vRunForDate_PbPb2023.push_back(runForDate_PbPb2023);
+        vStart_PbPb2023.push_back(start_PbPb2023);
+        vEnd_PbPb2023.push_back(end_PbPb2023);
+        vStart_2023.push_back(start_pp2023);
+    }
+
+    //IR only for PbPb
+    double run_PbPb2023IR, IR_PbPb2023;
+    vector<double> vRun_PbPb2023_IR, vIR_PbPb2023;
+    while (hIR_PbPb2023 >> run_PbPb2023IR >> IR_PbPb2023) {
+        vRun_PbPb2023_IR.push_back(run_PbPb2023IR);
+        vIR_PbPb2023.push_back(IR_PbPb2023/1000);
     }
 
     //Push back to a vector of int (no need to care about size)
-    double run;
-    vector<double> vRun;
+    //pp
+    double run_pp2023;
+    vector<double> vRun_pp2023;
+    vector<double> vRun_2023;
 
-    while(hRun >> run) {
-        vRun.push_back(run);
+    while(hRun_pp2023 >> run_pp2023) {
+        vRun_pp2023.push_back(run_pp2023);
+        vRun_2023.push_back(run_pp2023);
     }
     //sort in ascending order
-    sort(vRun.begin(), vRun.end()); 
+    sort(vRun_pp2023.begin(), vRun_pp2023.end()); //pp 2023
+    
+    //PbPb
+    double run_PbPb2023;
+    vector<double> vRun_PbPb2023;
+
+    while(hRun_PbPb2023 >> run_PbPb2023) {
+        vRun_PbPb2023.push_back(run_PbPb2023);
+        vRun_2023.push_back(run_PbPb2023);
+    }
+    //sort in ascending order
+    sort(vRun_PbPb2023.begin(), vRun_PbPb2023.end()); //PbPb 2023
+    sort(vRun_2023.begin(), vRun_2023.end()); //All 2023 (pp + PbPb)
 
     //General string name
     string fileName = "AnalysisResults.root";
 
-    //Loop on all runs
-    for (unsigned int iRun = 0; iRun < vRun.size(); iRun++) {
+    //Loop on all runs pp
+    for (unsigned int iRun = 0; iRun < vRun_pp2023.size(); iRun++) {
         //Enter the folder
-        string runFolder = runPath+to_string((int)vRun.at(iRun));
+        string runFolder = runPath_pp2023+to_string((int)vRun_pp2023.at(iRun));
 
         //run file name = path of the folder + run number (runFolder) + fileName
         string runFileName = runFolder+"/"+fileName;
@@ -229,10 +198,124 @@ void effByTime() { //Main function
 
         TDirectoryFile *d = (TDirectoryFile*)fRun->Get("mid-efficiency");
 
+        //Histo of counts per plane
         TH1F *hFiredBoth_Planes = (TH1F*)d->Get("nFiredBothperPlane");
         TH1F *hFiredBP_Planes = (TH1F*)d->Get("nFiredBPperPlane");
         TH1F *hFiredNBP_Planes = (TH1F*)d->Get("nFiredNBPperPlane");
         TH1F *hTotPlanes = (TH1F*)d->Get("nTotperPlane");    
+        //Histo of counts per RPC
+        TH1F *hFiredBoth_RPC = (TH1F*)d->Get("nFiredBothperRPC");
+        TH1F *hFiredBP_RPC = (TH1F*)d->Get("nFiredBPperRPC");
+        TH1F *hFiredNBP_RPC = (TH1F*)d->Get("nFiredNBPperRPC");
+        TH1F *hTotRPC = (TH1F*)d->Get("nTotperRPC"); 
+
+        //Calculate eff per run per plane
+        for (int i = 1; i <= nBinsPlane; i++) {
+
+            effBothPlane = (hFiredBoth_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+            effBPPlane = (hFiredBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+            effNBPPlane = (hFiredNBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+
+            errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
+            errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
+            errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
+
+            //Fill vector for efficiency per LB in the run
+            vEffBoth_Planes.push_back(effBothPlane);
+            vEffBP_Planes.push_back(effBPPlane);
+            vEffNBP_Planes.push_back(effNBPPlane);
+            
+            //Fill vector for error on efficiency per LB in the run
+            vErrEffBoth_Planes.push_back(errEffBothPlane);
+            vErrEffBP_Planes.push_back(errEffBPPlane);
+            vErrEffNBP_Planes.push_back(errEffNBPPlane);
+        
+        }
+
+        //Calculate eff per run per RPC
+        for (int i = 1; i <= nBinsRPC; i++) {
+
+            effBothRPC = (hFiredBoth_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+            effBPRPC = (hFiredBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+            effNBPPRPC = (hFiredNBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+
+            errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/hTotRPC->GetBinContent(i));
+            errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/hTotRPC->GetBinContent(i));
+            errEffNBPRPC = TMath::Sqrt(effNBPPRPC*(100-effNBPPRPC)/hTotRPC->GetBinContent(i));
+
+            //Fill vector for efficiency per LB in the run
+            vEffBoth_RPC.push_back(effBothRPC);
+            vEffBP_RPC.push_back(effBPRPC);
+            vEffNBP_RPC.push_back(effNBPPRPC);
+            
+            //Fill vector for error on efficiency per LB in the run
+            vErrEffBoth_RPC.push_back(errEffBothRPC);
+            vErrEffBP_RPC.push_back(errEffBPRPC);
+            vErrEffNBP_RPC.push_back(errEffNBPRPC);
+        
+        }
+
+        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+        vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
+        vEffBP_Planes_runs.push_back(vEffBP_Planes);
+        vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
+        
+        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+        vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
+        vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
+        vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
+
+        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+        vEffBoth_RPC_runs.push_back(vEffBoth_RPC);
+        vEffBP_RPC_runs.push_back(vEffBP_RPC);
+        vEffNBP_RPC_runs.push_back(vEffNBP_RPC);
+        
+        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+        vErrEffBoth_RPC_runs.push_back(vErrEffBoth_RPC);
+        vErrEffBP_RPC_runs.push_back(vErrEffBP_RPC); 
+        vErrEffNBP_RPC_runs.push_back(vErrEffNBP_RPC);
+
+        //Clear vector of eff per Plane in a run 
+        vEffBoth_Planes.clear();
+        vEffBP_Planes.clear();
+        vEffNBP_Planes.clear();
+        //Clear vector of error on eff per Plane in a run
+        vErrEffBoth_Planes.clear();
+        vErrEffBP_Planes.clear();
+        vErrEffNBP_Planes.clear();
+
+        //Clear vector of eff per RPC in a run 
+        vEffBoth_RPC.clear();
+        vEffBP_RPC.clear();
+        vEffNBP_RPC.clear();
+        //Clear vector of error on eff per RPC in a run
+        vErrEffBoth_RPC.clear();
+        vErrEffBP_RPC.clear();
+        vErrEffNBP_RPC.clear();
+
+    } //End of loop on all runs pp
+
+    //Loop on all runs PbPb
+    for (unsigned int iRun = 0; iRun < vRun_PbPb2023.size(); iRun++) {
+        //Enter the folder
+        string runFolder = runPath_PbPb2023+to_string((int)vRun_PbPb2023.at(iRun));
+
+        //run file name = path of the folder + run number (runFolder) + fileName
+        string runFileName = runFolder+"/"+fileName;
+        TFile *fRun = new TFile(runFileName.c_str(),"READ");
+
+        TDirectoryFile *d = (TDirectoryFile*)fRun->Get("mid-efficiency");
+
+        //Histo of counts per plane
+        TH1F *hFiredBoth_Planes = (TH1F*)d->Get("nFiredBothperPlane");
+        TH1F *hFiredBP_Planes = (TH1F*)d->Get("nFiredBPperPlane");
+        TH1F *hFiredNBP_Planes = (TH1F*)d->Get("nFiredNBPperPlane");
+        TH1F *hTotPlanes = (TH1F*)d->Get("nTotperPlane");    
+        //Histo of counts per RPC
+        TH1F *hFiredBoth_RPC = (TH1F*)d->Get("nFiredBothperRPC");
+        TH1F *hFiredBP_RPC = (TH1F*)d->Get("nFiredBPperRPC");
+        TH1F *hFiredNBP_RPC = (TH1F*)d->Get("nFiredNBPperRPC");
+        TH1F *hTotRPC = (TH1F*)d->Get("nTotperRPC"); 
 
         //Calculate eff per run at plane level
         for (int i = 1; i <= nBinsPlane; i++) {
@@ -257,40 +340,82 @@ void effByTime() { //Main function
         
         }
 
-        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run)
+        //Calculate eff per run per RPC
+        for (int i = 1; i <= nBinsRPC; i++) {
+
+            effBothRPC = (hFiredBoth_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+            effBPRPC = (hFiredBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+            effNBPPRPC = (hFiredNBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+
+            errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/hTotRPC->GetBinContent(i));
+            errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/hTotRPC->GetBinContent(i));
+            errEffNBPRPC = TMath::Sqrt(effNBPPRPC*(100-effNBPPRPC)/hTotRPC->GetBinContent(i));
+
+            //Fill vector for efficiency per LB in the run
+            vEffBoth_RPC.push_back(effBothRPC);
+            vEffBP_RPC.push_back(effBPRPC);
+            vEffNBP_RPC.push_back(effNBPPRPC);
+            
+            //Fill vector for error on efficiency per LB in the run
+            vErrEffBoth_RPC.push_back(errEffBothRPC);
+            vErrEffBP_RPC.push_back(errEffBPRPC);
+            vErrEffNBP_RPC.push_back(errEffNBPRPC);
+        
+        }
+
+        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per plane
         vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
         vEffBP_Planes_runs.push_back(vEffBP_Planes);
         vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
         
-        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run)
+        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
         vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
         vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
         vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
 
-        //Clear vector of eff for LB in a run
+        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+        vEffBoth_RPC_runs.push_back(vEffBoth_RPC);
+        vEffBP_RPC_runs.push_back(vEffBP_RPC);
+        vEffNBP_RPC_runs.push_back(vEffNBP_RPC);
+        
+        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+        vErrEffBoth_RPC_runs.push_back(vErrEffBoth_RPC);
+        vErrEffBP_RPC_runs.push_back(vErrEffBP_RPC); 
+        vErrEffNBP_RPC_runs.push_back(vErrEffNBP_RPC);
+
+        //Clear vector of eff per Plane in a run 
         vEffBoth_Planes.clear();
         vEffBP_Planes.clear();
         vEffNBP_Planes.clear();
-        //Clear vector of error on eff for LB in a run
+        //Clear vector of error on eff per Plane in a run
         vErrEffBoth_Planes.clear();
         vErrEffBP_Planes.clear();
         vErrEffNBP_Planes.clear();
 
-    } //End of loop on all runs
-    cout << "Size of vStart " << vStart.size() << endl;
+        //Clear vector of eff per RPC in a run 
+        vEffBoth_RPC.clear();
+        vEffBP_RPC.clear();
+        vEffNBP_RPC.clear();
+        //Clear vector of error on eff per RPC in a run
+        vErrEffBoth_RPC.clear();
+        vErrEffBP_RPC.clear();
+        vErrEffNBP_RPC.clear();
+
+    } //End of loop on all runs PbPb
+
+    cout << "Size of vStart_pp2023 " << vStart_pp2023.size() << endl;
+    cout << "Size of vStart_PbPb2023 " << vStart_PbPb2023.size() << endl;
+    cout << "Size of vStart_2023 " << vStart_2023.size() << endl;
     cout << "Size of vEffBoth_Planes " << vEffBoth_Planes_runs.size() << endl;
 
-    for (unsigned int i = 0; i < vEffBoth_Planes_runs.size(); i++) {
-        cout << vEffBoth_Planes_runs[i][0] << "+-" << vErrEffBoth_Planes_runs[i][0] << endl;
-    }
-
+    //per plane
     vector<double> vEffPerPlaneBoth, vEffPerPlaneBP, vEffPerPlaneNBP;
     vector<double> vErrEffPerPlaneBoth, vErrEffPerPlaneBP, vErrEffPerPlaneNBP;
 
     vector<vector<double>> vEffPerPlanePerRunBoth, vEffPerPlanePerRunBP, vEffPerPlanePerRunNBP;
     vector<vector<double>> vErrEffPerPlanePerRunBoth, vErrEffPerPlanePerRunBP, vErrEffPerPlanePerRunNBP;
     
-    int j = 0; //Variable to be used in the following loop to keep track of the plane (MT11, MT12, MT21, MT22)
+    int plane = 0; //Variable to be used in the following loop to keep track of the plane (MT11, MT12, MT21, MT22)
     //----------------------------------------------------------//
     //eff of both planes per plane
     //vEffBoth_Planes_runs = [[11,12,21,22]......[11,12,21,22]]
@@ -306,69 +431,510 @@ void effByTime() { //Main function
         
         if ((i % vEffBoth_Planes_runs.size() == 0) && (i != 0)) {
             //cout << "Pushing back vector" << endl;
-            //cout << i-(j*vEffBoth_Planes_runs.size()) << "\t" << j << endl;
-            if (j > 0) {
-                vEffPerPlaneBoth.push_back(vEffBoth_Planes_runs[i-(j*vEffBoth_Planes_runs.size())-1][j]);
-                //cout << "pushing back element " << vEffBoth_Planes_runs[i-(j*vEffBoth_Planes_runs.size())-1][j] << endl;
+            //cout << i-(plane*vEffBoth_Planes_runs.size()) << "\t" << plane << endl;
+            if (plane > 0) {
+                vEffPerPlaneBoth.push_back(vEffBoth_Planes_runs[i-(plane*vEffBoth_Planes_runs.size())-1][plane]);
+                vEffPerPlaneBP.push_back(vEffBP_Planes_runs[i-(plane*vEffBP_Planes_runs.size())-1][plane]);
+                vEffPerPlaneNBP.push_back(vEffNBP_Planes_runs[i-(plane*vEffNBP_Planes_runs.size())-1][plane]);
+                vErrEffPerPlaneBoth.push_back(vErrEffBoth_Planes_runs[i-(plane*vErrEffBoth_Planes_runs.size())-1][plane]);
+                vErrEffPerPlaneBP.push_back(vErrEffBP_Planes_runs[i-(plane*vErrEffBP_Planes_runs.size())-1][plane]);
+                vErrEffPerPlaneNBP.push_back(vErrEffNBP_Planes_runs[i-(plane*vErrEffNBP_Planes_runs.size())-1][plane]);
+                //cout << "pushing back element " << vEffBoth_Planes_runs[i-(plane*vEffBoth_Planes_runs.size())-1][plane] << endl;
             }
             vEffPerPlanePerRunBoth.push_back(vEffPerPlaneBoth);
+            vEffPerPlanePerRunBP.push_back(vEffPerPlaneBP);
+            vEffPerPlanePerRunNBP.push_back(vEffPerPlaneNBP);
+            vErrEffPerPlanePerRunBoth.push_back(vErrEffPerPlaneBoth);
+            vErrEffPerPlanePerRunBP.push_back(vErrEffPerPlaneBP);
+            vErrEffPerPlanePerRunNBP.push_back(vErrEffPerPlaneNBP);
+            
             vEffPerPlaneBoth.clear();
-            j++;
+            vEffPerPlaneBP.clear();
+            vEffPerPlaneNBP.clear();
+            vErrEffPerPlaneBoth.clear();
+            vErrEffPerPlaneBP.clear();
+            vErrEffPerPlaneNBP.clear();
+            
+            plane++; //move to the next plane
         }
         
         else {
-            //cout << "pushing back element " << vEffBoth_Planes_runs[i-(j*vEffBoth_Planes_runs.size())][j] << "\t i \t" << i << "\t j \t" << j << endl;
-            //cout << "pushing back element with index " << i-(j*vEffBoth_Planes_runs.size()) << "\t i \t" << i << "\t j \t" << j << endl;
-            if (j == 0) {
-                vEffPerPlaneBoth.push_back(vEffBoth_Planes_runs[i-(j*vEffBoth_Planes_runs.size())][j]);
+            //cout << "pushing back element " << vEffBoth_Planes_runs[i-(plane*vEffBoth_Planes_runs.size())][plane] << "\t i \t" << i << "\t plane \t" << plane << endl;
+            //cout << "pushing back element with index " << i-(plane*vEffBoth_Planes_runs.size()) << "\t i \t" << i << "\t plane \t" << plane << endl;
+            if (plane == 0) {
+                //Eff per plane on both planes, BP and NBP
+                vEffPerPlaneBoth.push_back(vEffBoth_Planes_runs[i-(plane*vEffBoth_Planes_runs.size())][plane]);
+                vEffPerPlaneBP.push_back(vEffBP_Planes_runs[i-(plane*vEffBP_Planes_runs.size())][plane]);
+                vEffPerPlaneNBP.push_back(vEffNBP_Planes_runs[i-(plane*vEffNBP_Planes_runs.size())][plane]);
+                //Err on eff per plane on both planes, BP and NBP
+                vErrEffPerPlaneBoth.push_back(vErrEffBoth_Planes_runs[i-(plane*vErrEffBoth_Planes_runs.size())][plane]);
+                vErrEffPerPlaneBP.push_back(vErrEffBP_Planes_runs[i-(plane*vErrEffBP_Planes_runs.size())][plane]);
+                vErrEffPerPlaneNBP.push_back(vErrEffNBP_Planes_runs[i-(plane*vErrEffNBP_Planes_runs.size())][plane]);
             }
             else {
-                vEffPerPlaneBoth.push_back(vEffBoth_Planes_runs[i-(j*vEffBoth_Planes_runs.size())-1][j]);
+                //Eff per plane on both planes, BP and NBP
+                vEffPerPlaneBoth.push_back(vEffBoth_Planes_runs[i-(plane*vEffBoth_Planes_runs.size())-1][plane]);
+                vEffPerPlaneBP.push_back(vEffBP_Planes_runs[i-(plane*vEffBP_Planes_runs.size())-1][plane]);
+                vEffPerPlaneNBP.push_back(vEffNBP_Planes_runs[i-(plane*vEffNBP_Planes_runs.size())-1][plane]);
+                //Err on eff per plane on both planes, BP and NBP
+                vErrEffPerPlaneBoth.push_back(vErrEffBoth_Planes_runs[i-(plane*vErrEffBoth_Planes_runs.size())-1][plane]);
+                vErrEffPerPlaneBP.push_back(vErrEffBP_Planes_runs[i-(plane*vErrEffBP_Planes_runs.size())-1][plane]);
+                vErrEffPerPlaneNBP.push_back(vErrEffNBP_Planes_runs[i-(plane*vErrEffNBP_Planes_runs.size())-1][plane]);
             }   
         }
     } 
 
     cout << vEffPerPlanePerRunBoth[0].size() << "\t" << vEffPerPlanePerRunBoth[1].size() << "\t" << vEffPerPlanePerRunBoth[2].size() << "\t" << vEffPerPlanePerRunBoth[3].size() << endl;
+    cout << vEffPerPlanePerRunBP[0].size() << "\t" << vEffPerPlanePerRunBP[1].size() << "\t" << vEffPerPlanePerRunBP[2].size() << "\t" << vEffPerPlanePerRunBP[3].size() << endl;
+    cout << vEffPerPlanePerRunNBP[0].size() << "\t" << vEffPerPlanePerRunNBP[1].size() << "\t" << vEffPerPlanePerRunNBP[2].size() << "\t" << vEffPerPlanePerRunNBP[3].size() << endl;
 
-    TGraphErrors *gEffPerRunPlane11Both = new TGraphErrors(vStart.size(),&vStart[0],&vEffPerPlanePerRunBoth[0][0],NULL,NULL);
-    TGraphErrors *gEffPerRunPlane12Both = new TGraphErrors(vStart.size(),&vStart[0],&vEffPerPlanePerRunBoth[1][0],NULL,NULL);
-    TGraphErrors *gEffPerRunPlane21Both = new TGraphErrors(vStart.size(),&vStart[0],&vEffPerPlanePerRunBoth[2][0],NULL,NULL);
-    TGraphErrors *gEffPerRunPlane22Both = new TGraphErrors(vStart.size(),&vStart[0],&vEffPerPlanePerRunBoth[3][0],NULL,NULL);
+    //Plane eff vs IR
+    vector<TGraphErrors*> gEffPlaneBothPlanesIR, gEffPlaneBPIR, gEffPlaneNBPIR;
+    
+    for (int i = 0; i < nBinsPlane; i++) {
+        TGraphErrors *g1 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBoth[i][0],NULL,&vErrEffPerPlanePerRunBoth[i][0]);
+        TGraphErrors *g2 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBP[i][0],NULL,&vErrEffPerPlanePerRunBP[i][0]);
+        TGraphErrors *g3 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunNBP[i][0],NULL,&vErrEffPerPlanePerRunNBP[i][0]);
+        
+        gEffPlaneBothPlanesIR.push_back(g1);
+        gEffPlaneBPIR.push_back(g2);
+        gEffPlaneNBPIR.push_back(g3);
+    } 
 
-    /*TGraphErrors *gEffPerRunPlane11BP = new TGraphErrors();
-    TGraphErrors *gEffPerRunPlane12BP = new TGraphErrors();
-    TGraphErrors *gEffPerRunPlane21BP = new TGraphErrors();
-    TGraphErrors *gEffPerRunPlane22BP = new TGraphErrors();
+    //Both planes
+    TCanvas *cEffPlaneBothPlanesIR = new TCanvas();
+    cEffPlaneBothPlanesIR->Divide(1,4);
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPlaneBothPlanesIR->cd(i+1);
+        gEffPlaneBothPlanesIR.at(i)->SetMarkerStyle(8);
+        gEffPlaneBothPlanesIR.at(i)->SetMarkerSize(1);
+        gEffPlaneBothPlanesIR.at(i)->SetMarkerColor(kBlack);
+        gEffPlaneBothPlanesIR.at(i)->SetTitle((planeName[i] + " Both planes vs IR").c_str());
+        gEffPlaneBothPlanesIR.at(i)->GetXaxis()->SetTitle("IR [kHz]]");
+        gEffPlaneBothPlanesIR.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPlaneBothPlanesIR.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPlaneBothPlanesIR.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPlaneBothPlanesIR.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPlaneBothPlanesIR.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPlaneBothPlanesIR.at(i)->Draw("AP");
+    }
+    //BP
+    TCanvas *cEffPlaneBPIR = new TCanvas();
+    cEffPlaneBPIR->Divide(1,4);
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPlaneBPIR->cd(i+1);
+        gEffPlaneBPIR.at(i)->SetMarkerStyle(8);
+        gEffPlaneBPIR.at(i)->SetMarkerSize(1);
+        gEffPlaneBPIR.at(i)->SetMarkerColor(kRed);
+        gEffPlaneBPIR.at(i)->SetTitle((planeName[i] + " Both planes vs IR").c_str());
+        gEffPlaneBPIR.at(i)->GetXaxis()->SetTitle("IR [kHz]]");
+        gEffPlaneBPIR.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPlaneBPIR.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPlaneBPIR.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPlaneBPIR.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPlaneBPIR.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPlaneBPIR.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPlaneBPIR.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPlaneBPIR.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPlaneBPIR.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPlaneBPIR.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPlaneBPIR.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPlaneBPIR.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPlaneBPIR.at(i)->Draw("AP");
+    }
+    //NBP
+    TCanvas *cEffPlaneNBPIR = new TCanvas();
+    cEffPlaneNBPIR->Divide(1,4);
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPlaneNBPIR->cd(i+1);
+        gEffPlaneNBPIR.at(i)->SetMarkerStyle(8);
+        gEffPlaneNBPIR.at(i)->SetMarkerSize(1);
+        gEffPlaneNBPIR.at(i)->SetMarkerColor(kBlack);
+        gEffPlaneNBPIR.at(i)->SetTitle((planeName[i] + " Both planes vs IR").c_str());
+        gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitle("IR [kHz]]");
+        gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPlaneNBPIR.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPlaneNBPIR.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPlaneNBPIR.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPlaneNBPIR.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPlaneNBPIR.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPlaneNBPIR.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPlaneNBPIR.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPlaneNBPIR.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPlaneNBPIR.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPlaneNBPIR.at(i)->Draw("AP");
+    }
 
-    TGraphErrors *gEffPerRunPlane11NBP = new TGraphErrors();
-    TGraphErrors *gEffPerRunPlane12NBP = new TGraphErrors();
-    TGraphErrors *gEffPerRunPlane21NBP = new TGraphErrors();
-    TGraphErrors *gEffPerRunPlane22NBP = new TGraphErrors();*/
+    
+    //Vector of TGraphErrors for all 4 planes on both, BP and NBP - plane eff vs run #
+    vector<TGraphErrors*> gEffPerRunPlaneBoth, gEffPerRunPlaneBP, gEffPerRunPlaneNBP;
+    
+    for (int i = 0; i < nBinsPlane; i++) {
+        TGraphErrors *g1 = new TGraphErrors(vRun_2023.size(),&vRun_2023[0],&vEffPerPlanePerRunBoth[i][0],NULL,&vErrEffPerPlanePerRunBoth[i][0]);
+        TGraphErrors *g2 = new TGraphErrors(vRun_2023.size(),&vRun_2023[0],&vEffPerPlanePerRunBP[i][0],NULL,&vErrEffPerPlanePerRunBP[i][0]);
+        TGraphErrors *g3 = new TGraphErrors(vRun_2023.size(),&vRun_2023[0],&vEffPerPlanePerRunNBP[i][0],NULL,&vErrEffPerPlanePerRunNBP[i][0]);
+        
+        gEffPerRunPlaneBoth.push_back(g1);
+        gEffPerRunPlaneBP.push_back(g2);
+        gEffPerRunPlaneNBP.push_back(g3);
+    } 
 
+    bool isTime = false;
+
+    //Both
     TCanvas *cEffPerPlaneBoth = new TCanvas();
-    //cEffPerPlaneBoth->SetCanvasSize(600,600);
     cEffPerPlaneBoth->Divide(1,4);
-    cEffPerPlaneBoth->cd(1); //MT11
-    gEffPerRunPlane11Both->SetMarkerStyle(8);
-    gEffPerRunPlane11Both->SetMarkerSize(2);
-    gEffPerRunPlane11Both->Draw("AP");
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPerPlaneBoth->cd(i+1);
+        gEffPerRunPlaneBoth.at(i)->SetMarkerStyle(8);
+        gEffPerRunPlaneBoth.at(i)->SetMarkerSize(1);
+        gEffPerRunPlaneBoth.at(i)->SetMarkerColor(kBlack);
+        gEffPerRunPlaneBoth.at(i)->SetTitle((planeName[i] + " Both planes").c_str());
+        if (isTime) {
+            gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+        }
+        else {
+            gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitle("Run #");
+        }
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunPlaneBoth.at(i)->Draw("AP");
+    }
     
-    cEffPerPlaneBoth->cd(2); //MT12
-    gEffPerRunPlane12Both->SetMarkerStyle(8);
-    gEffPerRunPlane12Both->SetMarkerSize(2);
-    gEffPerRunPlane12Both->Draw("AP");
-
-    cEffPerPlaneBoth->cd(3); //MT21
-    gEffPerRunPlane21Both->SetMarkerStyle(8);
-    gEffPerRunPlane21Both->SetMarkerSize(2);
-    gEffPerRunPlane21Both->Draw("AP");
-
-    cEffPerPlaneBoth->cd(4); //MT22
-    gEffPerRunPlane22Both->SetMarkerStyle(8);
-    gEffPerRunPlane22Both->SetMarkerSize(2);
-    gEffPerRunPlane22Both->Draw("AP");
-
+    //BP
+    TCanvas *cEffPerPlaneBP = new TCanvas();
+    cEffPerPlaneBP->Divide(1,4);
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPerPlaneBP->cd(i+1);
+        gEffPerRunPlaneBP.at(i)->SetMarkerStyle(8);
+        gEffPerRunPlaneBP.at(i)->SetMarkerSize(1);
+        gEffPerRunPlaneBP.at(i)->SetMarkerColor(kRed);
+        gEffPerRunPlaneBP.at(i)->SetTitle((planeName[i] + " BP").c_str());
+        if (isTime) {
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+        }
+        else {
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitle("Run #");
+        }
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunPlaneBP.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunPlaneBP.at(i)->Draw("AP");
+    }
     
-    hRun.close();
-    hDate.close();
+    //NBP
+    TCanvas *cEffPerPlaneNBP = new TCanvas();
+    cEffPerPlaneNBP->Divide(1,4);
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPerPlaneNBP->cd(i+1);
+        gEffPerRunPlaneNBP.at(i)->SetMarkerStyle(8);
+        gEffPerRunPlaneNBP.at(i)->SetMarkerSize(1);
+        gEffPerRunPlaneNBP.at(i)->SetMarkerColor(kGreen+3);
+        gEffPerRunPlaneNBP.at(i)->SetTitle((planeName[i] + " NBP").c_str());
+        if (isTime) {
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+        }
+        else {
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitle("Run #");
+        }
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunPlaneNBP.at(i)->Draw("AP");
+    }
+
+    //per RPC
+    vector<double> vEffPerRPCBoth, vEffPerRPCBP, vEffPerRPCNBP;
+    vector<double> vErrEffPerRPCBoth, vErrEffPerRPCBP, vErrEffPerRPCNBP;
+
+    vector<vector<double>> vEffPerRPCPerRunBoth, vEffPerRPCPerRunBP, vEffPerRPCPerRunNBP;
+    vector<vector<double>> vErrEffPerRPCPerRunBoth, vErrEffPerRPCPerRunBP, vErrEffPerRPCPerRunNBP;
+    
+    int rpc = 0; //Variable to be used in the following loop to keep track of the RPC (0 -> 71)
+    //----------------------------------------------------------//
+    //eff of both planes per plane
+    //vEffBoth_RPC_runs = [[0,.....,71]......[0,.....,71]]
+    //                       run #1             run #n 
+    //
+    //We want to get efficiency per plane and per run so the following loop creates this
+    //
+    //vEffPerPlanePerRunBoth = [[0_run#1...0_run#n],.....[71run#1...71_run#n]]
+    //
+    //So that we can plot it later on and also the sae for BP and NBP alone
+
+    for (int i = 0; i <= (vEffBoth_RPC_runs.size())*72; i++) {
+        
+        if ((i % vEffBoth_RPC_runs.size() == 0) && (i != 0)) {
+            //cout << "Pushing back vector" << endl;
+            //cout << i-(rpc*vEffBoth_RPC_runs.size()) << "\t" << rpc << endl;
+            if (rpc > 0) {
+                 //Eff per RPC on both planes, BP and NBP
+                vEffPerRPCBoth.push_back(vEffBoth_RPC_runs[i-(rpc*vEffBoth_RPC_runs.size())-1][rpc]);
+                vEffPerRPCBP.push_back(vEffBP_RPC_runs[i-(rpc*vEffBP_RPC_runs.size())-1][rpc]);
+                vEffPerRPCNBP.push_back(vEffNBP_RPC_runs[i-(rpc*vEffNBP_RPC_runs.size())-1][rpc]);
+                //Err on eff per RPC on both planes, BP and NBP
+                vErrEffPerRPCBoth.push_back(vErrEffBoth_RPC_runs[i-(rpc*vErrEffBoth_RPC_runs.size())-1][rpc]);
+                vErrEffPerRPCBP.push_back(vErrEffBP_RPC_runs[i-(rpc*vErrEffBP_RPC_runs.size())-1][rpc]);
+                vErrEffPerRPCNBP.push_back(vErrEffNBP_RPC_runs[i-(rpc*vErrEffNBP_RPC_runs.size())-1][rpc]);
+                //cout << "pushing back element " << vEffBoth_RPC_runs[i-(rpc*vEffBoth_RPC_runs.size())-1][rpc] << endl;
+            }
+            vEffPerRPCPerRunBoth.push_back(vEffPerRPCBoth);
+            vEffPerRPCPerRunBP.push_back(vEffPerRPCBP);
+            vEffPerRPCPerRunNBP.push_back(vEffPerRPCNBP);
+
+            vErrEffPerRPCPerRunBoth.push_back(vErrEffPerRPCBoth);
+            vErrEffPerRPCPerRunBP.push_back(vErrEffPerRPCBP);
+            vErrEffPerRPCPerRunNBP.push_back(vErrEffPerRPCNBP);
+            
+            vEffPerRPCBoth.clear();
+            vEffPerRPCBP.clear();
+            vEffPerRPCNBP.clear();
+            vErrEffPerRPCBoth.clear();
+            vErrEffPerRPCBP.clear();
+            vErrEffPerRPCNBP.clear();
+            
+            rpc++; //move to the next rpc
+        }
+        
+        else {
+            //cout << "pushing back element " << vEffBoth_RPC_runs[i-(rpc*vEffBoth_RPC_runs.size())][rpc] << "\t i \t" << i << "\t rpc \t" << rpc << endl;
+            //cout << "pushing back element with index " << i-(rpc*vEffBoth_RPC_runs.size()) << "\t i \t" << i << "\t rpc \t" << rpc << endl;
+            if (rpc == 0) {
+                //Eff per RPC on both planes, BP and NBP
+                vEffPerRPCBoth.push_back(vEffBoth_RPC_runs[i-(rpc*vEffBoth_RPC_runs.size())][rpc]);
+                vEffPerRPCBP.push_back(vEffBP_RPC_runs[i-(rpc*vEffBP_RPC_runs.size())][rpc]);
+                vEffPerRPCNBP.push_back(vEffNBP_RPC_runs[i-(rpc*vEffNBP_RPC_runs.size())][rpc]);
+                //Err on eff per RPC on both planes, BP and NBP
+                vErrEffPerRPCBoth.push_back(vErrEffBoth_RPC_runs[i-(rpc*vErrEffBoth_RPC_runs.size())][rpc]);
+                vErrEffPerRPCBP.push_back(vErrEffBP_RPC_runs[i-(rpc*vErrEffBP_RPC_runs.size())][rpc]);
+                vErrEffPerRPCNBP.push_back(vErrEffNBP_RPC_runs[i-(rpc*vErrEffNBP_RPC_runs.size())][rpc]);
+            }
+            else {
+                //Eff per RPC on both planes, BP and NBP
+                vEffPerRPCBoth.push_back(vEffBoth_RPC_runs[i-(rpc*vEffBoth_RPC_runs.size())-1][rpc]);
+                vEffPerRPCBP.push_back(vEffBP_RPC_runs[i-(rpc*vEffBP_RPC_runs.size())-1][rpc]);
+                vEffPerRPCNBP.push_back(vEffNBP_RPC_runs[i-(rpc*vEffNBP_RPC_runs.size())-1][rpc]);
+                //Err on eff per RPC on both planes, BP and NBP
+                vErrEffPerRPCBoth.push_back(vErrEffBoth_RPC_runs[i-(rpc*vErrEffBoth_RPC_runs.size())-1][rpc]);
+                vErrEffPerRPCBP.push_back(vErrEffBP_RPC_runs[i-(rpc*vErrEffBP_RPC_runs.size())-1][rpc]);
+                vErrEffPerRPCNBP.push_back(vErrEffNBP_RPC_runs[i-(rpc*vErrEffNBP_RPC_runs.size())-1][rpc]);
+            }   
+        }
+    }
+
+    //Vector of TGraphErrors for all 72 RPCs on both, BP and NBP
+    vector<TGraphErrors*> gEffPerRunRPCBoth, gEffPerRunRPCBP, gEffPerRunRPCNBP;
+    
+    for (int i = 0; i < nBinsRPC; i++) {
+        //cout << i << "\t" << vEffPerRPCPerRunBoth[i].size() << endl;
+        TGraphErrors *g1 = new TGraphErrors(vRun_2023.size(),&vRun_2023[0],&vEffPerRPCPerRunBoth[i][0],NULL,&vErrEffPerRPCPerRunBoth[i][0]);
+        TGraphErrors *g2 = new TGraphErrors(vRun_2023.size(),&vRun_2023[0],&vEffPerRPCPerRunBP[i][0],NULL,&vErrEffPerRPCPerRunBP[i][0]);
+        TGraphErrors *g3 = new TGraphErrors(vRun_2023.size(),&vRun_2023[0],&vEffPerRPCPerRunNBP[i][0],NULL,&vErrEffPerRPCPerRunNBP[i][0]);
+        
+        gEffPerRunRPCBoth.push_back(g1);
+        gEffPerRunRPCBP.push_back(g2);
+        gEffPerRunRPCNBP.push_back(g3);
+    } 
+
+    bool isTimeRPC = false; //if true -> plots have time on x axis otherwise run number
+
+    //Both
+    TCanvas *cEffPerRPCBoth_MT11 = new TCanvas();
+    cEffPerRPCBoth_MT11->Divide(2,9);
+
+    TCanvas *cEffPerRPCBoth_MT12 = new TCanvas();
+    cEffPerRPCBoth_MT12->Divide(2,9);
+
+    TCanvas *cEffPerRPCBoth_MT21 = new TCanvas();
+    cEffPerRPCBoth_MT21->Divide(2,9);
+
+    TCanvas *cEffPerRPCBoth_MT22 = new TCanvas();
+    cEffPerRPCBoth_MT22->Divide(2,9);
+
+    gStyle->SetTitleFontSize(0.07);
+    
+    for (int i = 0; i < nBinsRPC; i++) {
+        
+        //cout << "i \t" << i << "\t det name: \t" << o2::mid::detparams::getDEName(i) << endl;
+        
+        if (i >= 0 && i <= 8) { //MT11 ok
+            cEffPerRPCBoth_MT11->cd(i+18-(3*i));
+        }
+        else if (i >= 36 && i <= 44) { //MT11 ok
+            cEffPerRPCBoth_MT11->cd(i-19-(3*(i-36)));
+        }
+        //---//
+        else if (i >= 9 && i <= 17){ //MT12 ok
+            cEffPerRPCBoth_MT12->cd(i+9-(3*(i-9)));
+        }
+        else if (i >= 45 && i <= 53){ //MT12 ok
+            cEffPerRPCBoth_MT12->cd(i-28-(3*(i-45)));
+        }
+        //---//
+        else if (i >= 18 && i <= 26) { //MT21 ok
+            cEffPerRPCBoth_MT21->cd(i-(3*(i-18)));
+        }
+        else if (i >= 54 && i <= 62) { //MT21 ok
+            cEffPerRPCBoth_MT21->cd(i-37-(3*(i-54)));
+        }
+        //---//
+        else if (i >= 27 && i <= 35) { //MT22 ok
+            cEffPerRPCBoth_MT22->cd(i-9-(3*(i-27)));
+        }
+        else if (i >= 63 && i <= 71) { //MT22 ok
+            cEffPerRPCBoth_MT22->cd(i-46-(3*(i-63)));
+        }
+        //---//
+        gEffPerRunRPCBoth.at(i)->SetMarkerStyle(8);
+        gEffPerRunRPCBoth.at(i)->SetMarkerSize(1);
+        gEffPerRunRPCBoth.at(i)->SetMarkerColor(kBlack);
+        string detName = o2::mid::detparams::getDEName(i);
+        gEffPerRunRPCBoth.at(i)->SetTitle(("RPC" + to_string(i) + " Both planes -> " + detName).c_str());
+        //gEffPerRunRPCBoth.at(i)->SetTitleSize((0.07));
+        if (isTimeRPC) {
+            gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunRPCBoth.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+        }
+        else {
+            gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTitle("Run #");
+        }
+        gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunRPCBoth.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunRPCBoth.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunRPCBoth.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunRPCBoth.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunRPCBoth.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunRPCBoth.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunRPCBoth.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunRPCBoth.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunRPCBoth.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunRPCBoth.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunRPCBoth.at(i)->Draw("AP");   
+    }
+    
+    //BP
+    /*TCanvas *cEffPerPlaneBP = new TCanvas();
+    cEffPerPlaneBP->Divide(1,4);
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPerPlaneBP->cd(i+1);
+        gEffPerRunPlaneBP.at(i)->SetMarkerStyle(8);
+        gEffPerRunPlaneBP.at(i)->SetMarkerSize(1);
+        gEffPerRunPlaneBP.at(i)->SetMarkerColor(kRed);
+        gEffPerRunPlaneBP.at(i)->SetTitle((planeName[i] + " BP").c_str());
+        if (isTimeRPC) {
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+        }
+        else {
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitle("Run #");
+        }
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunPlaneBP.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunPlaneBP.at(i)->Draw("AP");
+    }
+    
+    //NBP
+    TCanvas *cEffPerPlaneNBP = new TCanvas();
+    cEffPerPlaneNBP->Divide(1,4);
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPerPlaneNBP->cd(i+1);
+        gEffPerRunPlaneNBP.at(i)->SetMarkerStyle(8);
+        gEffPerRunPlaneNBP.at(i)->SetMarkerSize(1);
+        gEffPerRunPlaneNBP.at(i)->SetMarkerColor(kGreen+3);
+        gEffPerRunPlaneNBP.at(i)->SetTitle((planeName[i] + " NBP").c_str());
+        if (isTimeRPC) {
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeDisplay(1);
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetNdivisions(503);
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeFormat("%Y-%m-%d");
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTimeOffset(0,"gmt");
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitle("Time [UTC]");
+        }
+        else {
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitle("Run #");
+        }
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleFont(62);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelFont(62);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleFont(62);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelFont(62);
+        //gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
+        gEffPerRunPlaneNBP.at(i)->Draw("AP");
+    }*/
+    
+    hRun_pp2023.close();
+    hDate_pp2023.close();
+    hRun_PbPb2023.close();
+    hDate_PbPb2023.close();
 }
