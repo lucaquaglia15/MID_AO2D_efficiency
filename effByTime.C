@@ -60,9 +60,16 @@ void effByTime() { //Main function
     //Run by run - Plane
     vector<double> vEffBoth_Planes, vEffBP_Planes, vEffNBP_Planes;
     vector<double> vErrEffBoth_Planes, vErrEffBP_Planes, vErrEffNBP_Planes;
+    //Pb-Pb
+    vector<double> vEffBoth_Planes_PbPb, vEffBP_Planes_PbPb, vEffNBP_Planes_PbPb;
+    vector<double> vErrEffBoth_Planes_PbPb, vErrEffBP_Planes_PbPb, vErrEffNBP_Planes_PbPb;
 
     vector<vector<double>> vEffBoth_Planes_runs, vEffBP_Planes_runs, vEffNBP_Planes_runs;
     vector<vector<double>> vErrEffBoth_Planes_runs, vErrEffBP_Planes_runs, vErrEffNBP_Planes_runs;
+    //Pb-Pb
+    vector<vector<double>> vEffBoth_Planes_runs_PbPb, vEffBP_Planes_runs_PbPb, vEffNBP_Planes_runs_PbPb;
+    vector<vector<double>> vErrEffBoth_Planes_runs_PbPb, vErrEffBP_Planes_runs_PbPb, vErrEffNBP_Planes_runs_PbPb;
+    
 
     //Run by run - RPC
     vector<double> vEffBoth_RPC, vEffBP_RPC, vEffNBP_RPC;
@@ -327,17 +334,25 @@ void effByTime() { //Main function
             errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
             errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
             errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
-
+            
             //Fill vector for efficiency per LB in the run
             vEffBoth_Planes.push_back(effBothPlane);
             vEffBP_Planes.push_back(effBPPlane);
             vEffNBP_Planes.push_back(effNBPPlane);
+            //Only PbPb
+            vEffBoth_Planes_PbPb.push_back(effBothPlane);
+            vEffBP_Planes_PbPb.push_back(effBPPlane);
+            vEffNBP_Planes_PbPb.push_back(effNBPPlane);
             
-            //Fill vector for error on efficiency per LB in the run
+            //Fill vector for error on efficiency per plane in the run
             vErrEffBoth_Planes.push_back(errEffBothPlane);
             vErrEffBP_Planes.push_back(errEffBPPlane);
             vErrEffNBP_Planes.push_back(errEffNBPPlane);
-        
+            
+            //Only PbPb
+            vErrEffBoth_Planes_PbPb.push_back(errEffBothPlane);
+            vErrEffBP_Planes_PbPb.push_back(errEffBPPlane);
+            vErrEffNBP_Planes_PbPb.push_back(errEffNBPPlane);
         }
 
         //Calculate eff per run per RPC
@@ -367,11 +382,19 @@ void effByTime() { //Main function
         vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
         vEffBP_Planes_runs.push_back(vEffBP_Planes);
         vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
+        //Only Pb-Pb
+        vEffBoth_Planes_runs_PbPb.push_back(vEffBoth_Planes_PbPb);
+        vEffBP_Planes_runs_PbPb.push_back(vEffBP_Planes_PbPb);
+        vEffNBP_Planes_runs_PbPb.push_back(vEffNBP_Planes_PbPb);
         
         //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
         vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
         vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
         vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
+        //Only Pb-Pb
+        vErrEffBoth_Planes_runs_PbPb.push_back(vErrEffBoth_Planes_PbPb);
+        vErrEffBP_Planes_runs_PbPb.push_back(vErrEffBP_Planes_PbPb);
+        vErrEffNBP_Planes_runs_PbPb.push_back(vErrEffNBP_Planes_PbPb);
 
         //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
         vEffBoth_RPC_runs.push_back(vEffBoth_RPC);
@@ -387,10 +410,16 @@ void effByTime() { //Main function
         vEffBoth_Planes.clear();
         vEffBP_Planes.clear();
         vEffNBP_Planes.clear();
+        vEffBoth_Planes_PbPb.clear();
+        vEffBP_Planes_PbPb.clear();
+        vEffNBP_Planes_PbPb.clear();
         //Clear vector of error on eff per Plane in a run
         vErrEffBoth_Planes.clear();
         vErrEffBP_Planes.clear();
         vErrEffNBP_Planes.clear();
+        vErrEffBoth_Planes_PbPb.clear();
+        vErrEffBP_Planes_PbPb.clear();
+        vErrEffNBP_Planes_PbPb.clear();
 
         //Clear vector of eff per RPC in a run 
         vEffBoth_RPC.clear();
@@ -406,7 +435,7 @@ void effByTime() { //Main function
     cout << "Size of vStart_pp2023 " << vStart_pp2023.size() << endl;
     cout << "Size of vStart_PbPb2023 " << vStart_PbPb2023.size() << endl;
     cout << "Size of vStart_2023 " << vStart_2023.size() << endl;
-    cout << "Size of vEffBoth_Planes " << vEffBoth_Planes_runs.size() << endl;
+    cout << "Size of vEffBoth_Planes_PbPb " << vEffBoth_Planes_runs_PbPb.size() << endl;
 
     //per plane
     vector<double> vEffPerPlaneBoth, vEffPerPlaneBP, vEffPerPlaneNBP;
@@ -484,22 +513,91 @@ void effByTime() { //Main function
         }
     } 
 
-    cout << vEffPerPlanePerRunBoth[0].size() << "\t" << vEffPerPlanePerRunBoth[1].size() << "\t" << vEffPerPlanePerRunBoth[2].size() << "\t" << vEffPerPlanePerRunBoth[3].size() << endl;
-    cout << vEffPerPlanePerRunBP[0].size() << "\t" << vEffPerPlanePerRunBP[1].size() << "\t" << vEffPerPlanePerRunBP[2].size() << "\t" << vEffPerPlanePerRunBP[3].size() << endl;
-    cout << vEffPerPlanePerRunNBP[0].size() << "\t" << vEffPerPlanePerRunNBP[1].size() << "\t" << vEffPerPlanePerRunNBP[2].size() << "\t" << vEffPerPlanePerRunNBP[3].size() << endl;
+    //per plane PbPb
+    vector<double> vEffPerPlaneBoth_PbPb, vEffPerPlaneBP_PbPb, vEffPerPlaneNBP_PbPb;
+    vector<double> vErrEffPerPlaneBoth_PbPb, vErrEffPerPlaneBP_PbPb, vErrEffPerPlaneNBP_PbPb;
+
+    vector<vector<double>> vEffPerPlanePerRunBoth_PbPb, vEffPerPlanePerRunBP_PbPb, vEffPerPlanePerRunNBP_PbPb;
+    vector<vector<double>> vErrEffPerPlanePerRunBoth_PbPb, vErrEffPerPlanePerRunBP_PbPb, vErrEffPerPlanePerRunNBP_PbPb;
+    
+    plane = 0; //Variable to be used in the following loop to keep track of the plane (MT11, MT12, MT21, MT22)
+
+    for (int i = 0; i <= (vEffBoth_Planes_runs_PbPb.size())*4; i++) {
+        
+        if ((i % vEffBoth_Planes_runs_PbPb.size() == 0) && (i != 0)) {
+            //cout << "Pushing back vector" << endl;
+            //cout << i-(plane*vEffBoth_Planes_runs.size()) << "\t" << plane << endl;
+            if (plane > 0) {
+                vEffPerPlaneBoth_PbPb.push_back(vEffBoth_Planes_runs_PbPb[i-(plane*vEffBoth_Planes_runs_PbPb.size())-1][plane]);
+                vEffPerPlaneBP_PbPb.push_back(vEffBP_Planes_runs_PbPb[i-(plane*vEffBP_Planes_runs_PbPb.size())-1][plane]);
+                vEffPerPlaneNBP_PbPb.push_back(vEffNBP_Planes_runs_PbPb[i-(plane*vEffNBP_Planes_runs_PbPb.size())-1][plane]);
+                vErrEffPerPlaneBoth_PbPb.push_back(vErrEffBoth_Planes_runs_PbPb[i-(plane*vErrEffBoth_Planes_runs_PbPb.size())-1][plane]);
+                vErrEffPerPlaneBP_PbPb.push_back(vErrEffBP_Planes_runs_PbPb[i-(plane*vErrEffBP_Planes_runs_PbPb.size())-1][plane]);
+                vErrEffPerPlaneNBP_PbPb.push_back(vErrEffNBP_Planes_runs_PbPb[i-(plane*vErrEffNBP_Planes_runs_PbPb.size())-1][plane]);
+                //cout << "pushing back element " << vEffBoth_Planes_runs[i-(plane*vEffBoth_Planes_runs.size())-1][plane] << endl;
+            }
+            vEffPerPlanePerRunBoth_PbPb.push_back(vEffPerPlaneBoth_PbPb);
+            vEffPerPlanePerRunBP_PbPb.push_back(vEffPerPlaneBP_PbPb);
+            vEffPerPlanePerRunNBP_PbPb.push_back(vEffPerPlaneNBP_PbPb);
+            vErrEffPerPlanePerRunBoth_PbPb.push_back(vErrEffPerPlaneBoth_PbPb);
+            vErrEffPerPlanePerRunBP_PbPb.push_back(vErrEffPerPlaneBP_PbPb);
+            vErrEffPerPlanePerRunNBP_PbPb.push_back(vErrEffPerPlaneNBP_PbPb);
+            
+            vEffPerPlaneBoth_PbPb.clear();
+            vEffPerPlaneBP_PbPb.clear();
+            vEffPerPlaneNBP_PbPb.clear();
+            vErrEffPerPlaneBoth_PbPb.clear();
+            vErrEffPerPlaneBP_PbPb.clear();
+            vErrEffPerPlaneNBP_PbPb.clear();
+            
+            plane++; //move to the next plane
+        }
+        
+        else {
+            //cout << "pushing back element " << vEffBoth_Planes_runs[i-(plane*vEffBoth_Planes_runs.size())][plane] << "\t i \t" << i << "\t plane \t" << plane << endl;
+            //cout << "pushing back element with index " << i-(plane*vEffBoth_Planes_runs.size()) << "\t i \t" << i << "\t plane \t" << plane << endl;
+            if (plane == 0) {
+                //Eff per plane on both planes, BP and NBP
+                vEffPerPlaneBoth_PbPb.push_back(vEffBoth_Planes_runs_PbPb[i-(plane*vEffBoth_Planes_runs_PbPb.size())][plane]);
+                vEffPerPlaneBP_PbPb.push_back(vEffBP_Planes_runs_PbPb[i-(plane*vEffBP_Planes_runs_PbPb.size())][plane]);
+                vEffPerPlaneNBP_PbPb.push_back(vEffNBP_Planes_runs_PbPb[i-(plane*vEffNBP_Planes_runs_PbPb.size())][plane]);
+                //Err on eff per plane on both planes, BP and NBP
+                vErrEffPerPlaneBoth_PbPb.push_back(vErrEffBoth_Planes_runs_PbPb[i-(plane*vErrEffBoth_Planes_runs_PbPb.size())][plane]);
+                vErrEffPerPlaneBP_PbPb.push_back(vErrEffBP_Planes_runs_PbPb[i-(plane*vErrEffBP_Planes_runs_PbPb.size())][plane]);
+                vErrEffPerPlaneNBP_PbPb.push_back(vErrEffNBP_Planes_runs_PbPb[i-(plane*vErrEffNBP_Planes_runs_PbPb.size())][plane]);
+            }
+            else {
+                //Eff per plane on both planes, BP and NBP
+                vEffPerPlaneBoth_PbPb.push_back(vEffBoth_Planes_runs_PbPb[i-(plane*vEffBoth_Planes_runs_PbPb.size())-1][plane]);
+                vEffPerPlaneBP_PbPb.push_back(vEffBP_Planes_runs_PbPb[i-(plane*vEffBP_Planes_runs_PbPb.size())-1][plane]);
+                vEffPerPlaneNBP_PbPb.push_back(vEffNBP_Planes_runs_PbPb[i-(plane*vEffNBP_Planes_runs_PbPb.size())-1][plane]);
+                //Err on eff per plane on both planes, BP and NBP
+                vErrEffPerPlaneBoth_PbPb.push_back(vErrEffBoth_Planes_runs_PbPb[i-(plane*vErrEffBoth_Planes_runs_PbPb.size())-1][plane]);
+                vErrEffPerPlaneBP_PbPb.push_back(vErrEffBP_Planes_runs_PbPb[i-(plane*vErrEffBP_Planes_runs_PbPb.size())-1][plane]);
+                vErrEffPerPlaneNBP_PbPb.push_back(vErrEffNBP_Planes_runs_PbPb[i-(plane*vErrEffNBP_Planes_runs_PbPb.size())-1][plane]);
+            }   
+        }
+    }
+
+    cout << vEffPerPlanePerRunBoth_PbPb[0].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[1].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[2].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[3].size() << endl;
+    cout << vEffPerPlanePerRunBP_PbPb[0].size() << "\t" << vEffPerPlanePerRunBP_PbPb[1].size() << "\t" << vEffPerPlanePerRunBP_PbPb[2].size() << "\t" << vEffPerPlanePerRunBP_PbPb[3].size() << endl;
+    cout << vEffPerPlanePerRunNBP_PbPb[0].size() << "\t" << vEffPerPlanePerRunNBP_PbPb[1].size() << "\t" << vEffPerPlanePerRunNBP_PbPb[2].size() << "\t" << vEffPerPlanePerRunNBP_PbPb[3].size() << endl;
 
     //Plane eff vs IR
     vector<TGraphErrors*> gEffPlaneBothPlanesIR, gEffPlaneBPIR, gEffPlaneNBPIR;
     
     for (int i = 0; i < nBinsPlane; i++) {
-        TGraphErrors *g1 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBoth[i][0],NULL,&vErrEffPerPlanePerRunBoth[i][0]);
-        TGraphErrors *g2 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBP[i][0],NULL,&vErrEffPerPlanePerRunBP[i][0]);
-        TGraphErrors *g3 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunNBP[i][0],NULL,&vErrEffPerPlanePerRunNBP[i][0]);
+        TGraphErrors *g1 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBoth_PbPb[i][0],NULL,&vErrEffPerPlanePerRunBoth_PbPb[i][0]);
+        TGraphErrors *g2 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBP_PbPb[i][0],NULL,&vErrEffPerPlanePerRunBP_PbPb[i][0]);
+        TGraphErrors *g3 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunNBP_PbPb[i][0],NULL,&vErrEffPerPlanePerRunNBP_PbPb[i][0]);
         
         gEffPlaneBothPlanesIR.push_back(g1);
         gEffPlaneBPIR.push_back(g2);
         gEffPlaneNBPIR.push_back(g3);
     } 
+
+    //From run 544868 onwards the magnet polarity has been changed from +/+ to -/-
+    //Let's try to color the markers differently in the Eff v IR plot
 
     //Both planes
     TCanvas *cEffPlaneBothPlanesIR = new TCanvas();
@@ -533,7 +631,7 @@ void effByTime() { //Main function
         gEffPlaneBPIR.at(i)->SetMarkerStyle(8);
         gEffPlaneBPIR.at(i)->SetMarkerSize(1);
         gEffPlaneBPIR.at(i)->SetMarkerColor(kRed);
-        gEffPlaneBPIR.at(i)->SetTitle((planeName[i] + " Both planes vs IR").c_str());
+        gEffPlaneBPIR.at(i)->SetTitle((planeName[i] + " BP vs IR").c_str());
         gEffPlaneBPIR.at(i)->GetXaxis()->SetTitle("IR [kHz]]");
         gEffPlaneBPIR.at(i)->GetXaxis()->SetTitleOffset(0.5);
         gEffPlaneBPIR.at(i)->GetXaxis()->SetTitleSize(0.07);
@@ -557,7 +655,7 @@ void effByTime() { //Main function
         gEffPlaneNBPIR.at(i)->SetMarkerStyle(8);
         gEffPlaneNBPIR.at(i)->SetMarkerSize(1);
         gEffPlaneNBPIR.at(i)->SetMarkerColor(kBlack);
-        gEffPlaneNBPIR.at(i)->SetTitle((planeName[i] + " Both planes vs IR").c_str());
+        gEffPlaneNBPIR.at(i)->SetTitle((planeName[i] + " NBP vs IR").c_str());
         gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitle("IR [kHz]]");
         gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitleOffset(0.5);
         gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitleSize(0.07);
