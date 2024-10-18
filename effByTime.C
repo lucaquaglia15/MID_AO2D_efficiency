@@ -21,6 +21,8 @@
 #include <string>
 #include <filesystem>
 #include "TKey.h"
+#include "TMarker.h"
+#include "TLegend.h"
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
 #include "MIDBase/DetectorParameters.h" //Detector parameter
@@ -98,98 +100,60 @@ void effByTime() { //Main function
     string runPath_pp2023 = globalPath_pp2023+"runs/";
     //PbPb
     string runPath_PbPb2023 = globalPath_PbPb2023+"runs/";
-
-    //Path for the .txt file of the run list of the period
-    //pp
-    string runNumbers_pp2023 = globalPath_pp2023+"run_list.txt"; 
-    string runDates_pp2023 = globalPath_pp2023+"run_dates.txt";
-    //PbPb
-    string runNumbers_PbPb2023 = globalPath_PbPb2023+"run_list.txt"; 
-    string runDates_PbPb2023 = globalPath_PbPb2023+"run_dates.txt";
+    
+    //IR pp (IR in this case is not trustable but B field is)
+    string fIR_pp2023 = globalPath_pp2023+"run_IR_Bfield.txt";    
     //IR PbPb
-    string fIR_PbPb2023 = globalPath_PbPb2023+"run_IR.txt"; 
+    string fIR_PbPb2023 = globalPath_PbPb2023+"run_IR_Bfield.txt"; 
 
-    //Open txt file of runs
-    //pp
-    ifstream hRun_pp2023;
-    hRun_pp2023.open(runNumbers_pp2023.c_str());
-    //PbPb
-    ifstream hRun_PbPb2023;
-    hRun_PbPb2023.open(runNumbers_PbPb2023.c_str());
-
-    //Open txt file of start/end dates of the runs
-    //pp
-    ifstream hDate_pp2023;
-    hDate_pp2023.open(runDates_pp2023.c_str());
-    //PbPb
-    ifstream hDate_PbPb2023;
-    hDate_PbPb2023.open(runDates_PbPb2023.c_str());
-
+    //Open txt file for IR pp 2023
+    ifstream hIR_pp2023;
+    hIR_pp2023.open(fIR_pp2023.c_str());
     //Open txt file for IR PbPb 2023
     ifstream hIR_PbPb2023;
     hIR_PbPb2023.open(fIR_PbPb2023.c_str());
     
-    //Get start and end of each run
-    //pp
-    long int runForDate_pp2023;
+    //IR pp (plus B field)
+    //B field has also a general vector for pp + PbPb
     double start_pp2023, end_pp2023;
-    vector<long int> vRunForDate_pp2023;
-    vector<double> vStart_pp2023, vEnd_pp2023;
-    vector<double> vStart_2023;
+    vector<double> vStart_pp2023, vEnd_pp2023, vStart_2023;        
     
-    while (hDate_pp2023 >> runForDate_pp2023 >> start_pp2023 >> end_pp2023){
-        vRunForDate_pp2023.push_back(runForDate_pp2023);
-        vStart_pp2023.push_back(start_pp2023);
-        vEnd_pp2023.push_back(end_pp2023);
-        vStart_2023.push_back(start_pp2023);
-        cout << start_pp2023 << "\t" << start_pp2023/1000 << endl;
-        printf("start_pp2023: %f \t start_pp2023/1000: %f",start_pp2023,start_pp2023/1000);
-    }
-    //PbPb
-    long int runForDate_PbPb2023;
-    double start_PbPb2023, end_PbPb2023;
-    vector<long int> vRunForDate_PbPb2023;
-    vector<double> vStart_PbPb2023, vEnd_PbPb2023;
-    
-    while (hDate_PbPb2023 >> runForDate_PbPb2023 >> start_PbPb2023 >> end_PbPb2023){
-        vRunForDate_PbPb2023.push_back(runForDate_PbPb2023);
-        vStart_PbPb2023.push_back(start_PbPb2023);
-        vEnd_PbPb2023.push_back(end_PbPb2023);
-        vStart_2023.push_back(start_pp2023);
-    }
+    double run_pp2023, IR_pp2023;
+    vector<double> vRun_pp2023, vRun_2023 vIR_pp2023;
 
-    //IR only for PbPb
-    double run_PbPb2023IR, IR_PbPb2023;
-    vector<double> vRun_PbPb2023_IR, vIR_PbPb2023;
-    while (hIR_PbPb2023 >> run_PbPb2023IR >> IR_PbPb2023) {
-        vRun_PbPb2023_IR.push_back(run_PbPb2023IR);
-        vIR_PbPb2023.push_back(IR_PbPb2023/1000);
-    }
+    string bField_pp2023;
+    vector<string> vBField_pp2023, vBField_2023;
 
-    //Push back to a vector of int (no need to care about size)
-    //pp
-    double run_pp2023;
-    vector<double> vRun_pp2023;
-    vector<double> vRun_2023;
-
-    while(hRun_pp2023 >> run_pp2023) {
+    while (hIR_pp2023 >> run_pp2023 >> IR_pp2023 >> bField_pp2023 >> start_pp2023 >> end_pp2023) {
         vRun_pp2023.push_back(run_pp2023);
-        vRun_2023.push_back(run_pp2023);
+        vRun_2023.push_back(run_pp2023IR);
+        vIR_pp2023.push_back(IR_pp2023/1000);
+        vBField_pp2023.push_back(bField_pp2023);
+        vBField_2023.push_back(bField_pp2023);
+        vStart_pp2023.push_back(start_pp2023);
+        vStart_2023.push_back(start_pp2023);
+        vEnd_pp2023.push_back(end_pp2023);
     }
-    //sort in ascending order
-    sort(vRun_pp2023.begin(), vRun_pp2023.end()); //pp 2023
-    
-    //PbPb
-    double run_PbPb2023;
-    vector<double> vRun_PbPb2023;
 
-    while(hRun_PbPb2023 >> run_PbPb2023) {
+    //IR PbPb   
+    double start_PbPb2023, end_PbPb2023;
+    vector<double> vStart_PbPb2023, vEnd_PbPb2023;
+
+    double run_PbPb2023, IR_PbPb2023;
+    vector<double> vRun_PbPb2023, vIR_PbPb2023;
+
+    string bField_PbPb2023;
+    vector<string> vBField_PbPb2023;
+    
+    while (hIR_PbPb2023 >> run_PbPb2023 >> IR_PbPb2023 >> bField_PbPb2023 >> start_PbPb2023 >> end_PbPb2023) {
         vRun_PbPb2023.push_back(run_PbPb2023);
-        vRun_2023.push_back(run_PbPb2023);
+        vIR_PbPb2023.push_back(IR_PbPb2023/1000);
+        vBField_PbPb2023.push_back(bField_PbPb2023);
+        vBField_2023.push_back(bField_PbPb2023);
+        vStart_PbPb2023.push_back(start_PbPb2023);
+        vStart_2023.push_back(start_PbPb2023);
+        vEnd_PbPb2023.push_back(end_PbPb2023);
     }
-    //sort in ascending order
-    sort(vRun_PbPb2023.begin(), vRun_PbPb2023.end()); //PbPb 2023
-    sort(vRun_2023.begin(), vRun_2023.end()); //All 2023 (pp + PbPb)
 
     //General string name
     string fileName = "AnalysisResults.root";
@@ -301,6 +265,87 @@ void effByTime() { //Main function
         vErrEffNBP_RPC.clear();
 
     } //End of loop on all runs pp
+
+    //Loop on low IR runs in PbPb -> written by hand by me
+    vector<double> vRun_lowIRPbPb2023 = {543442};
+    vector<double> vIR_lowIRPbPb2023 = {958.791};
+
+    for (unsigned int i = 0; i < vRun_lowIRPbPb2023.size(); i++) {
+        string effFileLowIrzx = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_zx_lowIRPbPb/mid-efficiency_" + to_string((int)vRun_lowIRPbPb2023.at(i)) + ".root"; //This data come from the reconstruction of runs done on grid -> output file is mid-efficiency_xxxxxx.root where xxx is the run number
+        TFile *fEffLowIRzx = new TFile(effFileLowIrzx.c_str(),"READ");
+
+        TH1F *hFiredBoth_Planes = (TH1F*)fEffLowIRzx->Get("nFiredBothperPlane");
+        TH1F *hFiredBP_Planes = (TH1F*)fEffLowIRzx->Get("nFiredBPperPlane");
+        TH1F *hFiredNBP_Planes = (TH1F*)fEffLowIRzx->Get("nFiredNBPperPlane");
+        TH1F *hTotPlanes = (TH1F*)fEffLowIRzx->Get("nTotperPlane"); 
+
+        for (int i = 1; i <= nBinsPlane; i++) {
+
+            effBothPlane = (hFiredBoth_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+            effBPPlane = (hFiredBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+            effNBPPlane = (hFiredNBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+
+            errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
+            errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
+            errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
+
+            cout << "Plane: " << planeName[i] << " Both planes: " << effBothPlane << "+-" << errEffBothPlane << " BP: " << effBPPlane << "+-" << errEffBPPlane << " NBP: " << effNBPPlane << "+-" << errEffNBPPlane << endl;
+            
+            //Fill vector for efficiency per LB in the run
+            vEffBoth_Planes.push_back(effBothPlane);
+            vEffBP_Planes.push_back(effBPPlane);
+            vEffNBP_Planes.push_back(effNBPPlane);
+
+            //Only PbPb
+            vEffBoth_Planes_PbPb.push_back(effBothPlane);
+            vEffBP_Planes_PbPb.push_back(effBPPlane);
+            vEffNBP_Planes_PbPb.push_back(effNBPPlane);
+
+            //Fill vector for error on efficiency per plane in the run
+            vErrEffBoth_Planes.push_back(errEffBothPlane);
+            vErrEffBP_Planes.push_back(errEffBPPlane);
+            vErrEffNBP_Planes.push_back(errEffNBPPlane);
+
+            //Only PbPb
+            vErrEffBoth_Planes_PbPb.push_back(errEffBothPlane);
+            vErrEffBP_Planes_PbPb.push_back(errEffBPPlane);
+            vErrEffNBP_Planes_PbPb.push_back(errEffNBPPlane);
+        
+        }
+
+        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+        vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
+        vEffBP_Planes_runs.push_back(vEffBP_Planes);
+        vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
+        //Only Pb-Pb
+        vEffBoth_Planes_runs_PbPb.push_back(vEffBoth_Planes_PbPb);
+        vEffBP_Planes_runs_PbPb.push_back(vEffBP_Planes_PbPb);
+        vEffNBP_Planes_runs_PbPb.push_back(vEffNBP_Planes_PbPb);
+        
+        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+        vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
+        vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
+        vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
+        //Only Pb-Pb
+        vErrEffBoth_Planes_runs_PbPb.push_back(vErrEffBoth_Planes_PbPb);
+        vErrEffBP_Planes_runs_PbPb.push_back(vErrEffBP_Planes_PbPb);
+        vErrEffNBP_Planes_runs_PbPb.push_back(vErrEffNBP_Planes_PbPb);
+
+        //Clear vector of eff per Plane in a run 
+        vEffBoth_Planes.clear();
+        vEffBP_Planes.clear();
+        vEffNBP_Planes.clear();
+        vEffBoth_Planes_PbPb.clear();
+        vEffBP_Planes_PbPb.clear();
+        vEffNBP_Planes_PbPb.clear();
+        //Clear vector of error on eff per Plane in a run
+        vErrEffBoth_Planes.clear();
+        vErrEffBP_Planes.clear();
+        vErrEffNBP_Planes.clear();
+        vErrEffBoth_Planes_PbPb.clear();
+        vErrEffBP_Planes_PbPb.clear();
+        vErrEffNBP_Planes_PbPb.clear();
+    }
 
     //Loop on all runs PbPb
     for (unsigned int iRun = 0; iRun < vRun_PbPb2023.size(); iRun++) {
@@ -436,6 +481,9 @@ void effByTime() { //Main function
     cout << "Size of vStart_PbPb2023 " << vStart_PbPb2023.size() << endl;
     cout << "Size of vStart_2023 " << vStart_2023.size() << endl;
     cout << "Size of vEffBoth_Planes_PbPb " << vEffBoth_Planes_runs_PbPb.size() << endl;
+    cout << "size of B field vector (pp) " << vBField_pp2023.size() << endl;
+    cout << "size of B field vector (PbPb) " << vBField_PbPb2023.size() << endl;
+    cout << "size of B field vector (pp + PbPb) " << vBField_2023.size() << endl;
 
     //per plane
     vector<double> vEffPerPlaneBoth, vEffPerPlaneBP, vEffPerPlaneNBP;
@@ -585,6 +633,8 @@ void effByTime() { //Main function
 
     //Plane eff vs IR
     vector<TGraphErrors*> gEffPlaneBothPlanesIR, gEffPlaneBPIR, gEffPlaneNBPIR;
+
+    v.insert(v.begin(), 6);
     
     for (int i = 0; i < nBinsPlane; i++) {
         TGraphErrors *g1 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBoth_PbPb[i][0],NULL,&vErrEffPerPlanePerRunBoth_PbPb[i][0]);
@@ -598,11 +648,30 @@ void effByTime() { //Main function
 
     //From run 544868 onwards the magnet polarity has been changed from +/+ to -/-
     //Let's try to color the markers differently in the Eff v IR plot
+    int elemNumber = 0;
+    for (unsigned int i = 0; i < vIR_PbPb2023.size(); i++) {
+        if (vRun_PbPb2023_IR.at(i) == 544868) {
+            elemNumber = i;
+            break;
+        }
+        else 
+            continue;
+    }
+   
+    double x,y; //For coordinates in Eff vs IR plot
+    TMarker *m; //To have a different color for the markers referring to -/- magnetic field polarity
 
     //Both planes
+    TLegend *lEffPlenBothPlanesIR = new TLegend(0.129,0.626,0.206,0.881,"","rNDC");
+	lEffPlenBothPlanesIR->SetBorderSize(0);	//No borders in legend
+	lEffPlenBothPlanesIR->SetFillStyle(0);		//Transparent background
+	lEffPlenBothPlanesIR->SetTextFont(62);		//Bold legend
+
     TCanvas *cEffPlaneBothPlanesIR = new TCanvas();
     cEffPlaneBothPlanesIR->Divide(1,4);
     for (int i = 0; i < nBinsPlane; i++) {
+        bool added = false; //Used to keep track if the marker related to the -/- B field polairty has been added to the legend
+
         cEffPlaneBothPlanesIR->cd(i+1);
         gEffPlaneBothPlanesIR.at(i)->SetMarkerStyle(8);
         gEffPlaneBothPlanesIR.at(i)->SetMarkerSize(1);
@@ -622,11 +691,37 @@ void effByTime() { //Main function
         gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPlaneBothPlanesIR.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPlaneBothPlanesIR.at(i)->Draw("AP");
+        if (i == 0) {
+            lEffPlenBothPlanesIR->AddEntry(gEffPlaneBothPlanesIR.at(0),"+/+ polarity","p");
+        }
+
+        for (int j = 0; j< gEffPlaneBothPlanesIR.at(i)->GetN(); j++) {
+            if (j >= elemNumber) {
+                gEffPlaneBothPlanesIR.at(i)->GetPoint(j,x,y);
+                m = new TMarker(x,y,8);
+                m->SetMarkerColor(kOrange);
+                m->SetMarkerSize(1);
+                m->Draw("SAME");
+                if (added == false && i == 0) {
+                    added = true;
+                    lEffPlenBothPlanesIR->AddEntry(m,"-/- polarity","p");
+                }
+            }
+        }  
+        //Draw legend
+        lEffPlenBothPlanesIR->Draw("SAME");      
     }
     //BP
+    TLegend *lEffPlenBPIR = new TLegend(0.129,0.626,0.206,0.881,"","rNDC");
+	lEffPlenBPIR->SetBorderSize(0);	//No borders in legend
+	lEffPlenBPIR->SetFillStyle(0);		//Transparent background
+	lEffPlenBPIR->SetTextFont(62);		//Bold legend
+
     TCanvas *cEffPlaneBPIR = new TCanvas();
     cEffPlaneBPIR->Divide(1,4);
     for (int i = 0; i < nBinsPlane; i++) {
+        bool added = false; //Used to keep track if the marker related to the -/- B field polairty has been added to the legend
+
         cEffPlaneBPIR->cd(i+1);
         gEffPlaneBPIR.at(i)->SetMarkerStyle(8);
         gEffPlaneBPIR.at(i)->SetMarkerSize(1);
@@ -646,15 +741,41 @@ void effByTime() { //Main function
         gEffPlaneBPIR.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPlaneBPIR.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPlaneBPIR.at(i)->Draw("AP");
+        if (i == 0) {
+            lEffPlenBPIR->AddEntry(gEffPlaneBPIR.at(0),"+/+ polarity","p");
+        }
+        
+        for (int j = 0; j< gEffPlaneBPIR.at(i)->GetN(); j++) {
+            if (j >= elemNumber) {
+                gEffPlaneBPIR.at(i)->GetPoint(j,x,y);
+                m = new TMarker(x,y,8);
+                m->SetMarkerColor(kOrange);
+                m->SetMarkerSize(1);
+                m->Draw("SAME");
+                if (added == false && i == 0) {
+                    added = true;
+                    lEffPlenBPIR->AddEntry(m,"-/- polarity","p");
+                }
+            }
+        }
+        //Draw legend
+        lEffPlenBPIR->Draw("SAME");
     }
     //NBP
+    TLegend *lEffPlenNBPIR = new TLegend(0.129,0.626,0.206,0.881,"","rNDC");
+	lEffPlenNBPIR->SetBorderSize(0);	//No borders in legend
+	lEffPlenNBPIR->SetFillStyle(0);		//Transparent background
+	lEffPlenNBPIR->SetTextFont(62);		//Bold legend
+
     TCanvas *cEffPlaneNBPIR = new TCanvas();
     cEffPlaneNBPIR->Divide(1,4);
     for (int i = 0; i < nBinsPlane; i++) {
+        bool added = false; //Used to keep track if the marker related to the -/- B field polairty has been added to the legend
+
         cEffPlaneNBPIR->cd(i+1);
         gEffPlaneNBPIR.at(i)->SetMarkerStyle(8);
         gEffPlaneNBPIR.at(i)->SetMarkerSize(1);
-        gEffPlaneNBPIR.at(i)->SetMarkerColor(kBlack);
+        gEffPlaneNBPIR.at(i)->SetMarkerColor(kGreen+3);
         gEffPlaneNBPIR.at(i)->SetTitle((planeName[i] + " NBP vs IR").c_str());
         gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitle("IR [kHz]]");
         gEffPlaneNBPIR.at(i)->GetXaxis()->SetTitleOffset(0.5);
@@ -670,8 +791,26 @@ void effByTime() { //Main function
         gEffPlaneNBPIR.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPlaneNBPIR.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPlaneNBPIR.at(i)->Draw("AP");
-    }
+        if (i == 0) {
+            lEffPlenNBPIR->AddEntry(gEffPlaneNBPIR.at(0),"+/+ polarity","p");
+        }
 
+        for (int j = 0; j< gEffPlaneNBPIR.at(i)->GetN(); j++) {
+            if (j >= elemNumber) {
+                gEffPlaneNBPIR.at(i)->GetPoint(j,x,y);
+                m = new TMarker(x,y,8);
+                m->SetMarkerColor(kOrange);
+                m->SetMarkerSize(1);
+                m->Draw("SAME");
+                if (added == false && i == 0) {
+                    added = true;
+                    lEffPlenNBPIR->AddEntry(m,"-/- polarity","p");
+                }
+            }
+        }
+        //Draw legend
+        lEffPlenNBPIR->Draw("SAME");
+    }
     
     //Vector of TGraphErrors for all 4 planes on both, BP and NBP - plane eff vs run #
     vector<TGraphErrors*> gEffPerRunPlaneBoth, gEffPerRunPlaneBP, gEffPerRunPlaneNBP;
@@ -720,6 +859,31 @@ void effByTime() { //Main function
         gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneBoth.at(i)->Draw("AP");
+        for (int j = 0; j < gEffPerRunPlaneBoth.at(i)->GetN(); j++) {
+            if (vBField_2023.at(j) == "minus") {
+                gEffPerRunPlaneBoth.at(i)->GetPoint(j,x,y);
+                m = new TMarker(x,y,8);
+                m->SetMarkerColor(kOrange);
+                m->SetMarkerSize(1);
+                m->Draw("SAME");
+            }
+        }
+        TLegend *lEffPlaneBoth = (TLegend*)lEffPlenBothPlanesIR->Clone();
+        lEffPlaneBoth->Draw("SAME");
+        gPad->Update();
+        if (i != 3) {
+            lEffPlaneBoth->SetX1NDC(0.799);
+            lEffPlaneBoth->SetY1NDC(0.605);
+            lEffPlaneBoth->SetX2NDC(0.876);
+            lEffPlaneBoth->SetY2NDC(0.859);
+        }
+        else {
+            lEffPlaneBoth->SetX1NDC(0.799);
+            lEffPlaneBoth->SetY1NDC(0.250);
+            lEffPlaneBoth->SetX2NDC(0.876);
+            lEffPlaneBoth->SetY2NDC(0.504);
+        }
+        gPad->Modified();
     }
     
     //BP
@@ -754,6 +918,31 @@ void effByTime() { //Main function
         gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneBP.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneBP.at(i)->Draw("AP");
+        for (int j = 0; j < gEffPerRunPlaneBP.at(i)->GetN(); j++) {
+            if (vBField_2023.at(j) == "minus") {
+                gEffPerRunPlaneBP.at(i)->GetPoint(j,x,y);
+                m = new TMarker(x,y,8);
+                m->SetMarkerColor(kOrange);
+                m->SetMarkerSize(1);
+                m->Draw("SAME");
+            }
+        }
+        TLegend *lEffPlaneBP = (TLegend*)lEffPlenBPIR->Clone();
+        lEffPlaneBP->Draw("SAME");
+        gPad->Update();
+        if (i != 3) {
+            lEffPlaneBP->SetX1NDC(0.799);
+            lEffPlaneBP->SetY1NDC(0.605);
+            lEffPlaneBP->SetX2NDC(0.876);
+            lEffPlaneBP->SetY2NDC(0.859);
+        }
+        else {
+            lEffPlaneBP->SetX1NDC(0.799);
+            lEffPlaneBP->SetY1NDC(0.250);
+            lEffPlaneBP->SetX2NDC(0.876);
+            lEffPlaneBP->SetY2NDC(0.504);
+        }
+        gPad->Modified();
     }
     
     //NBP
@@ -788,6 +977,31 @@ void effByTime() { //Main function
         gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneNBP.at(i)->Draw("AP");
+        for (int j = 0; j < gEffPerRunPlaneNBP.at(i)->GetN(); j++) {
+            if (vBField_2023.at(j) == "minus") {
+                gEffPerRunPlaneNBP.at(i)->GetPoint(j,x,y);
+                m = new TMarker(x,y,8);
+                m->SetMarkerColor(kOrange);
+                m->SetMarkerSize(1);
+                m->Draw("SAME");
+            }
+        }
+        TLegend *lEffPlaneNBP = (TLegend*)lEffPlenNBPIR->Clone();
+        lEffPlaneNBP->Draw("SAME");
+        gPad->Update();
+        if (i != 3) {
+            lEffPlaneNBP->SetX1NDC(0.799);
+            lEffPlaneNBP->SetY1NDC(0.605);
+            lEffPlaneNBP->SetX2NDC(0.876);
+            lEffPlaneNBP->SetY2NDC(0.859);
+        }
+        else {
+            lEffPlaneNBP->SetX1NDC(0.799);
+            lEffPlaneNBP->SetY1NDC(0.250);
+            lEffPlaneNBP->SetX2NDC(0.876);
+            lEffPlaneNBP->SetY2NDC(0.504);
+        }
+        gPad->Modified();
     }
 
     //per RPC
