@@ -11,7 +11,9 @@ void fetchCCDB() {
     //General path to add flexibility to the code + period name
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
     //string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
-    string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other dataset for the analyses of Nazar
+    //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other dataset for the analyses of Nazar
+    //string period = "LHC22o_pass7_minBias"; //pp 2022 min bias pass 7
+    string period = "LHC23_pass4_skimmed"; //pp skimmed QC data of 2023 pass 4
     string globalPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/";
 
     //Path for the .txt file of the run list of the period
