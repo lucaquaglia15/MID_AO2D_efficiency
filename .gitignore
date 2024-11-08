@@ -2,3 +2,4 @@
 *.root
 *.yml
 *.txt
+*.env
