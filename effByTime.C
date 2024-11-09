@@ -23,6 +23,7 @@
 #include "TKey.h"
 #include "TMarker.h"
 #include "TLegend.h"
+#include <bits/stdc++.h>
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
 #include "MIDBase/DetectorParameters.h" //Detector parameter
@@ -72,7 +73,6 @@ void effByTime() { //Main function
     vector<vector<double>> vEffBoth_Planes_runs_PbPb, vEffBP_Planes_runs_PbPb, vEffNBP_Planes_runs_PbPb;
     vector<vector<double>> vErrEffBoth_Planes_runs_PbPb, vErrEffBP_Planes_runs_PbPb, vErrEffNBP_Planes_runs_PbPb;
     
-
     //Run by run - RPC
     vector<double> vEffBoth_RPC, vEffBP_RPC, vEffNBP_RPC;
     vector<double> vErrEffBoth_RPC, vErrEffBP_RPC, vErrEffNBP_RPC;
@@ -87,13 +87,18 @@ void effByTime() { //Main function
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
     string period_pp2023 = "LHC23_pass4_skimmed"; //pp skimmed QC data of 2023 pass 4
     string period_PbPb2023 = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
+    //string period_PbPb2023 = "DQ_LHC23_PbPb_pass4";
+    //string period_PbPb2023 = "DQ_LHC23_PbPb_pass4_cent";
     //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
     //string period = "LHC22o_pass7_minBias";
     
     //pp
-    string globalPath_pp2023 = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period_pp2023+"/";
+    string globalPath_pp2023 = "/media/luca/Elements/MIDefficiency/"+period_pp2023+"/";
     //PbPb
-    string globalPath_PbPb2023 = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period_PbPb2023+"/";
+    string globalPath_PbPb2023 = "/media/luca/Elements/MIDefficiency/"+period_PbPb2023+"/";
+
+    //Output .root file
+    TFile *fOutEffPlane = new TFile(("outFile_" + period_PbPb2023 + ".root").c_str(),"RECREATE");
 
     //Path of the merged file, run-by-run
     //pp
@@ -106,27 +111,25 @@ void effByTime() { //Main function
     //IR PbPb
     string fIR_PbPb2023 = globalPath_PbPb2023+"run_IR_Bfield.txt"; 
 
-    //Open txt file for IR pp 2023
+    //Open txt file for run number + magnetic field polarity + IR pp 2023
     ifstream hIR_pp2023;
     hIR_pp2023.open(fIR_pp2023.c_str());
-    //Open txt file for IR PbPb 2023
+    //Open txt file for run number + magnetic field polarity + IR PbPb 2023
     ifstream hIR_PbPb2023;
     hIR_PbPb2023.open(fIR_PbPb2023.c_str());
     
-    //IR pp (plus B field)
-    //B field has also a general vector for pp + PbPb
     double start_pp2023, end_pp2023;
     vector<double> vStart_pp2023, vEnd_pp2023, vStart_2023;        
     
     double run_pp2023, IR_pp2023;
-    vector<double> vRun_pp2023, vRun_2023 vIR_pp2023;
+    vector<double> vRun_pp2023, vRun_2023, vIR_pp2023;
 
     string bField_pp2023;
     vector<string> vBField_pp2023, vBField_2023;
 
     while (hIR_pp2023 >> run_pp2023 >> IR_pp2023 >> bField_pp2023 >> start_pp2023 >> end_pp2023) {
         vRun_pp2023.push_back(run_pp2023);
-        vRun_2023.push_back(run_pp2023IR);
+        vRun_2023.push_back(run_pp2023);
         vIR_pp2023.push_back(IR_pp2023/1000);
         vBField_pp2023.push_back(bField_pp2023);
         vBField_2023.push_back(bField_pp2023);
@@ -136,6 +139,8 @@ void effByTime() { //Main function
     }
 
     //IR PbPb   
+    bool isIn;
+
     double start_PbPb2023, end_PbPb2023;
     vector<double> vStart_PbPb2023, vEnd_PbPb2023;
 
@@ -145,14 +150,17 @@ void effByTime() { //Main function
     string bField_PbPb2023;
     vector<string> vBField_PbPb2023;
     
-    while (hIR_PbPb2023 >> run_PbPb2023 >> IR_PbPb2023 >> bField_PbPb2023 >> start_PbPb2023 >> end_PbPb2023) {
-        vRun_PbPb2023.push_back(run_PbPb2023);
-        vIR_PbPb2023.push_back(IR_PbPb2023/1000);
-        vBField_PbPb2023.push_back(bField_PbPb2023);
-        vBField_2023.push_back(bField_PbPb2023);
-        vStart_PbPb2023.push_back(start_PbPb2023);
-        vStart_2023.push_back(start_PbPb2023);
-        vEnd_PbPb2023.push_back(end_PbPb2023);
+    while (hIR_PbPb2023 >> isIn >> run_PbPb2023 >> IR_PbPb2023 >> bField_PbPb2023 >> start_PbPb2023 >> end_PbPb2023) {
+        if (isIn) {
+            vRun_PbPb2023.push_back(run_PbPb2023);
+            vRun_2023.push_back(run_PbPb2023);
+            vIR_PbPb2023.push_back(IR_PbPb2023/1000);
+            vBField_PbPb2023.push_back(bField_PbPb2023);
+            vBField_2023.push_back(bField_PbPb2023);
+            vStart_PbPb2023.push_back(start_PbPb2023);
+            vStart_2023.push_back(start_PbPb2023);
+            vEnd_PbPb2023.push_back(end_PbPb2023);
+        }
     }
 
     //General string name
@@ -266,220 +274,310 @@ void effByTime() { //Main function
 
     } //End of loop on all runs pp
 
-    //Loop on low IR runs in PbPb -> written by hand by me
-    vector<double> vRun_lowIRPbPb2023 = {543442};
-    vector<double> vIR_lowIRPbPb2023 = {958.791};
-
-    for (unsigned int i = 0; i < vRun_lowIRPbPb2023.size(); i++) {
-        string effFileLowIrzx = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_zx_lowIRPbPb/mid-efficiency_" + to_string((int)vRun_lowIRPbPb2023.at(i)) + ".root"; //This data come from the reconstruction of runs done on grid -> output file is mid-efficiency_xxxxxx.root where xxx is the run number
-        TFile *fEffLowIRzx = new TFile(effFileLowIrzx.c_str(),"READ");
-
-        TH1F *hFiredBoth_Planes = (TH1F*)fEffLowIRzx->Get("nFiredBothperPlane");
-        TH1F *hFiredBP_Planes = (TH1F*)fEffLowIRzx->Get("nFiredBPperPlane");
-        TH1F *hFiredNBP_Planes = (TH1F*)fEffLowIRzx->Get("nFiredNBPperPlane");
-        TH1F *hTotPlanes = (TH1F*)fEffLowIRzx->Get("nTotperPlane"); 
-
-        for (int i = 1; i <= nBinsPlane; i++) {
-
-            effBothPlane = (hFiredBoth_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-            effBPPlane = (hFiredBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-            effNBPPlane = (hFiredNBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-
-            errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
-            errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
-            errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
-
-            cout << "Plane: " << planeName[i] << " Both planes: " << effBothPlane << "+-" << errEffBothPlane << " BP: " << effBPPlane << "+-" << errEffBPPlane << " NBP: " << effNBPPlane << "+-" << errEffNBPPlane << endl;
-            
-            //Fill vector for efficiency per LB in the run
-            vEffBoth_Planes.push_back(effBothPlane);
-            vEffBP_Planes.push_back(effBPPlane);
-            vEffNBP_Planes.push_back(effNBPPlane);
-
-            //Only PbPb
-            vEffBoth_Planes_PbPb.push_back(effBothPlane);
-            vEffBP_Planes_PbPb.push_back(effBPPlane);
-            vEffNBP_Planes_PbPb.push_back(effNBPPlane);
-
-            //Fill vector for error on efficiency per plane in the run
-            vErrEffBoth_Planes.push_back(errEffBothPlane);
-            vErrEffBP_Planes.push_back(errEffBPPlane);
-            vErrEffNBP_Planes.push_back(errEffNBPPlane);
-
-            //Only PbPb
-            vErrEffBoth_Planes_PbPb.push_back(errEffBothPlane);
-            vErrEffBP_Planes_PbPb.push_back(errEffBPPlane);
-            vErrEffNBP_Planes_PbPb.push_back(errEffNBPPlane);
-        
-        }
-
-        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per plane
-        vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
-        vEffBP_Planes_runs.push_back(vEffBP_Planes);
-        vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
-        //Only Pb-Pb
-        vEffBoth_Planes_runs_PbPb.push_back(vEffBoth_Planes_PbPb);
-        vEffBP_Planes_runs_PbPb.push_back(vEffBP_Planes_PbPb);
-        vEffNBP_Planes_runs_PbPb.push_back(vEffNBP_Planes_PbPb);
-        
-        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
-        vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
-        vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
-        vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
-        //Only Pb-Pb
-        vErrEffBoth_Planes_runs_PbPb.push_back(vErrEffBoth_Planes_PbPb);
-        vErrEffBP_Planes_runs_PbPb.push_back(vErrEffBP_Planes_PbPb);
-        vErrEffNBP_Planes_runs_PbPb.push_back(vErrEffNBP_Planes_PbPb);
-
-        //Clear vector of eff per Plane in a run 
-        vEffBoth_Planes.clear();
-        vEffBP_Planes.clear();
-        vEffNBP_Planes.clear();
-        vEffBoth_Planes_PbPb.clear();
-        vEffBP_Planes_PbPb.clear();
-        vEffNBP_Planes_PbPb.clear();
-        //Clear vector of error on eff per Plane in a run
-        vErrEffBoth_Planes.clear();
-        vErrEffBP_Planes.clear();
-        vErrEffNBP_Planes.clear();
-        vErrEffBoth_Planes_PbPb.clear();
-        vErrEffBP_Planes_PbPb.clear();
-        vErrEffNBP_Planes_PbPb.clear();
-    }
-
     //Loop on all runs PbPb
     for (unsigned int iRun = 0; iRun < vRun_PbPb2023.size(); iRun++) {
-        //Enter the folder
-        string runFolder = runPath_PbPb2023+to_string((int)vRun_PbPb2023.at(iRun));
-
-        //run file name = path of the folder + run number (runFolder) + fileName
-        string runFileName = runFolder+"/"+fileName;
-        TFile *fRun = new TFile(runFileName.c_str(),"READ");
-
-        TDirectoryFile *d = (TDirectoryFile*)fRun->Get("mid-efficiency");
-
-        //Histo of counts per plane
-        TH1F *hFiredBoth_Planes = (TH1F*)d->Get("nFiredBothperPlane");
-        TH1F *hFiredBP_Planes = (TH1F*)d->Get("nFiredBPperPlane");
-        TH1F *hFiredNBP_Planes = (TH1F*)d->Get("nFiredNBPperPlane");
-        TH1F *hTotPlanes = (TH1F*)d->Get("nTotperPlane");    
-        //Histo of counts per RPC
-        TH1F *hFiredBoth_RPC = (TH1F*)d->Get("nFiredBothperRPC");
-        TH1F *hFiredBP_RPC = (TH1F*)d->Get("nFiredBPperRPC");
-        TH1F *hFiredNBP_RPC = (TH1F*)d->Get("nFiredNBPperRPC");
-        TH1F *hTotRPC = (TH1F*)d->Get("nTotperRPC"); 
-
-        //Calculate eff per run at plane level
-        for (int i = 1; i <= nBinsPlane; i++) {
-
-            effBothPlane = (hFiredBoth_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-            effBPPlane = (hFiredBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-            effNBPPlane = (hFiredNBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-
-            errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
-            errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
-            errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
             
-            //Fill vector for efficiency per LB in the run
-            vEffBoth_Planes.push_back(effBothPlane);
-            vEffBP_Planes.push_back(effBPPlane);
-            vEffNBP_Planes.push_back(effNBPPlane);
-            //Only PbPb
-            vEffBoth_Planes_PbPb.push_back(effBothPlane);
-            vEffBP_Planes_PbPb.push_back(effBPPlane);
-            vEffNBP_Planes_PbPb.push_back(effNBPPlane);
+        //if ((int)vRun_PbPb2023.at(iRun) == 543442 || (int)vRun_PbPb2023.at(iRun) == 543484 || (int)vRun_PbPb2023.at(iRun) == 543437) {
+        //    continue;
+        if ((int)vRun_PbPb2023.at(iRun) == 543437 || (int)vRun_PbPb2023.at(iRun) == 543442 || (int)vRun_PbPb2023.at(iRun) == 543484 ||
+            (int)vRun_PbPb2023.at(iRun) == 543641 || (int)vRun_PbPb2023.at(iRun) == 544565 || (int)vRun_PbPb2023.at(iRun) == 545185) {
+            cout << (int)vRun_PbPb2023.at(iRun) << " here" << endl;
+            string effFileLowIrzx = "/media/luca/Elements/MIDefficiency/LHC23_recoGrid/mid-efficiency_" + to_string((int)vRun_PbPb2023.at(iRun)) + ".root"; //This data come from the reconstruction of runs done on grid -> output file is mid-efficiency_xxxxxx.root where xxx is the run number
+            TFile *fEffLowIRzx = new TFile(effFileLowIrzx.c_str(),"READ");
+
+            TH1F *hFiredBoth_Planes = (TH1F*)fEffLowIRzx->Get("nFiredBothperPlane");
+            TH1F *hFiredBP_Planes = (TH1F*)fEffLowIRzx->Get("nFiredBPperPlane");
+            TH1F *hFiredNBP_Planes = (TH1F*)fEffLowIRzx->Get("nFiredNBPperPlane");
+            TH1F *hTotPlanes = (TH1F*)fEffLowIRzx->Get("nTotperPlane"); 
+            //Histo of counts per RPC
+            TH1F *hFiredBoth_RPC = (TH1F*)fEffLowIRzx->Get("nFiredBothperRPC");
+            TH1F *hFiredBP_RPC = (TH1F*)fEffLowIRzx->Get("nFiredBPperRPC");
+            TH1F *hFiredNBP_RPC = (TH1F*)fEffLowIRzx->Get("nFiredNBPperRPC");
+            TH1F *hTotRPC = (TH1F*)fEffLowIRzx->Get("nTotperRPC"); 
+
+            //Calculate eff per run at plane level
+            for (int i = 1; i <= nBinsPlane; i++) {
+
+                effBothPlane = (hFiredBoth_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+                effBPPlane = (hFiredBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+                effNBPPlane = (hFiredNBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+
+                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
+                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
+                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
+                
+                //Fill vector for efficiency per LB in the run
+                vEffBoth_Planes.push_back(effBothPlane);
+                vEffBP_Planes.push_back(effBPPlane);
+                vEffNBP_Planes.push_back(effNBPPlane);
+                //Only PbPb
+                vEffBoth_Planes_PbPb.push_back(effBothPlane);
+                vEffBP_Planes_PbPb.push_back(effBPPlane);
+                vEffNBP_Planes_PbPb.push_back(effNBPPlane);
+                
+                //Fill vector for error on efficiency per plane in the run
+                vErrEffBoth_Planes.push_back(errEffBothPlane);
+                vErrEffBP_Planes.push_back(errEffBPPlane);
+                vErrEffNBP_Planes.push_back(errEffNBPPlane);
+                
+                //Only PbPb
+                vErrEffBoth_Planes_PbPb.push_back(errEffBothPlane);
+                vErrEffBP_Planes_PbPb.push_back(errEffBPPlane);
+                vErrEffNBP_Planes_PbPb.push_back(errEffNBPPlane);
+            }
+
+            //Calculate eff per run per RPC
+            for (int i = 1; i <= nBinsRPC; i++) {
+
+                effBothRPC = (hFiredBoth_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+                effBPRPC = (hFiredBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+                effNBPPRPC = (hFiredNBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+
+                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/hTotRPC->GetBinContent(i));
+                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/hTotRPC->GetBinContent(i));
+                errEffNBPRPC = TMath::Sqrt(effNBPPRPC*(100-effNBPPRPC)/hTotRPC->GetBinContent(i));
+
+                //Fill vector for efficiency per LB in the run
+                vEffBoth_RPC.push_back(effBothRPC);
+                vEffBP_RPC.push_back(effBPRPC);
+                vEffNBP_RPC.push_back(effNBPPRPC);
+                
+                //Fill vector for error on efficiency per LB in the run
+                vErrEffBoth_RPC.push_back(errEffBothRPC);
+                vErrEffBP_RPC.push_back(errEffBPRPC);
+                vErrEffNBP_RPC.push_back(errEffNBPRPC);
             
-            //Fill vector for error on efficiency per plane in the run
-            vErrEffBoth_Planes.push_back(errEffBothPlane);
-            vErrEffBP_Planes.push_back(errEffBPPlane);
-            vErrEffNBP_Planes.push_back(errEffNBPPlane);
+            }
+
+            //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+            vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
+            vEffBP_Planes_runs.push_back(vEffBP_Planes);
+            vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
+            //Only Pb-Pb
+            vEffBoth_Planes_runs_PbPb.push_back(vEffBoth_Planes_PbPb);
+            vEffBP_Planes_runs_PbPb.push_back(vEffBP_Planes_PbPb);
+            vEffNBP_Planes_runs_PbPb.push_back(vEffNBP_Planes_PbPb);
             
-            //Only PbPb
-            vErrEffBoth_Planes_PbPb.push_back(errEffBothPlane);
-            vErrEffBP_Planes_PbPb.push_back(errEffBPPlane);
-            vErrEffNBP_Planes_PbPb.push_back(errEffNBPPlane);
+            //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+            vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
+            vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
+            vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
+            //Only Pb-Pb
+            vErrEffBoth_Planes_runs_PbPb.push_back(vErrEffBoth_Planes_PbPb);
+            vErrEffBP_Planes_runs_PbPb.push_back(vErrEffBP_Planes_PbPb);
+            vErrEffNBP_Planes_runs_PbPb.push_back(vErrEffNBP_Planes_PbPb);
+
+            //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+            vEffBoth_RPC_runs.push_back(vEffBoth_RPC);
+            vEffBP_RPC_runs.push_back(vEffBP_RPC);
+            vEffNBP_RPC_runs.push_back(vEffNBP_RPC);
+            
+            //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+            vErrEffBoth_RPC_runs.push_back(vErrEffBoth_RPC);
+            vErrEffBP_RPC_runs.push_back(vErrEffBP_RPC); 
+            vErrEffNBP_RPC_runs.push_back(vErrEffNBP_RPC);
+
+            //Clear vector of eff per Plane in a run 
+            vEffBoth_Planes.clear();
+            vEffBP_Planes.clear();
+            vEffNBP_Planes.clear();
+            vEffBoth_Planes_PbPb.clear();
+            vEffBP_Planes_PbPb.clear();
+            vEffNBP_Planes_PbPb.clear();
+            //Clear vector of error on eff per Plane in a run
+            vErrEffBoth_Planes.clear();
+            vErrEffBP_Planes.clear();
+            vErrEffNBP_Planes.clear();
+            vErrEffBoth_Planes_PbPb.clear();
+            vErrEffBP_Planes_PbPb.clear();
+            vErrEffNBP_Planes_PbPb.clear();
+
+            //Clear vector of eff per RPC in a run 
+            vEffBoth_RPC.clear();
+            vEffBP_RPC.clear();
+            vEffNBP_RPC.clear();
+            //Clear vector of error on eff per RPC in a run
+            vErrEffBoth_RPC.clear();
+            vErrEffBP_RPC.clear();
+            vErrEffNBP_RPC.clear();
         }
+        
+        if ((int)vRun_PbPb2023.at(iRun) != 543437 && (int)vRun_PbPb2023.at(iRun) != 543442 && (int)vRun_PbPb2023.at(iRun) != 543484 &&
+            (int)vRun_PbPb2023.at(iRun) != 543641) {
+            //Enter the folder
+            cout << (int)vRun_PbPb2023.at(iRun) << " out here" << endl;
 
-        //Calculate eff per run per RPC
-        for (int i = 1; i <= nBinsRPC; i++) {
+            string runFolder = runPath_PbPb2023+to_string((int)vRun_PbPb2023.at(iRun));
 
-            effBothRPC = (hFiredBoth_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
-            effBPRPC = (hFiredBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
-            effNBPPRPC = (hFiredNBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+            //run file name = path of the folder + run number (runFolder) + fileName
+            string runFileName = runFolder+"/"+fileName;
+            TFile *fRun = new TFile(runFileName.c_str(),"READ");
 
-            errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/hTotRPC->GetBinContent(i));
-            errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/hTotRPC->GetBinContent(i));
-            errEffNBPRPC = TMath::Sqrt(effNBPPRPC*(100-effNBPPRPC)/hTotRPC->GetBinContent(i));
+            TDirectoryFile *d = (TDirectoryFile*)fRun->Get("mid-efficiency");
 
-            //Fill vector for efficiency per LB in the run
-            vEffBoth_RPC.push_back(effBothRPC);
-            vEffBP_RPC.push_back(effBPRPC);
-            vEffNBP_RPC.push_back(effNBPPRPC);
+            //Histo of counts per plane
+            TH1F *hFiredBoth_Planes = (TH1F*)d->Get("nFiredBothperPlane");
+            TH1F *hFiredBP_Planes = (TH1F*)d->Get("nFiredBPperPlane");
+            TH1F *hFiredNBP_Planes = (TH1F*)d->Get("nFiredNBPperPlane");
+            TH1F *hTotPlanes = (TH1F*)d->Get("nTotperPlane");    
+            //Histo of counts per RPC
+            TH1F *hFiredBoth_RPC = (TH1F*)d->Get("nFiredBothperRPC");
+            TH1F *hFiredBP_RPC = (TH1F*)d->Get("nFiredBPperRPC");
+            TH1F *hFiredNBP_RPC = (TH1F*)d->Get("nFiredNBPperRPC");
+            TH1F *hTotRPC = (TH1F*)d->Get("nTotperRPC"); 
+
+            //Calculate eff per run at plane level
+            for (int i = 1; i <= nBinsPlane; i++) {
+
+                effBothPlane = (hFiredBoth_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+                effBPPlane = (hFiredBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+                effNBPPlane = (hFiredNBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+
+                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
+                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
+                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
+                
+                //Fill vector for efficiency per LB in the run
+                vEffBoth_Planes.push_back(effBothPlane);
+                vEffBP_Planes.push_back(effBPPlane);
+                vEffNBP_Planes.push_back(effNBPPlane);
+                //Only PbPb
+                vEffBoth_Planes_PbPb.push_back(effBothPlane);
+                vEffBP_Planes_PbPb.push_back(effBPPlane);
+                vEffNBP_Planes_PbPb.push_back(effNBPPlane);
+                
+                //Fill vector for error on efficiency per plane in the run
+                vErrEffBoth_Planes.push_back(errEffBothPlane);
+                vErrEffBP_Planes.push_back(errEffBPPlane);
+                vErrEffNBP_Planes.push_back(errEffNBPPlane);
+                
+                //Only PbPb
+                vErrEffBoth_Planes_PbPb.push_back(errEffBothPlane);
+                vErrEffBP_Planes_PbPb.push_back(errEffBPPlane);
+                vErrEffNBP_Planes_PbPb.push_back(errEffNBPPlane);
+            }
+
+            //Calculate eff per run per RPC
+            for (int i = 1; i <= nBinsRPC; i++) {
+
+                effBothRPC = (hFiredBoth_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+                effBPRPC = (hFiredBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+                effNBPPRPC = (hFiredNBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+
+                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/hTotRPC->GetBinContent(i));
+                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/hTotRPC->GetBinContent(i));
+                errEffNBPRPC = TMath::Sqrt(effNBPPRPC*(100-effNBPPRPC)/hTotRPC->GetBinContent(i));
+
+                //Fill vector for efficiency per LB in the run
+                vEffBoth_RPC.push_back(effBothRPC);
+                vEffBP_RPC.push_back(effBPRPC);
+                vEffNBP_RPC.push_back(effNBPPRPC);
+                
+                //Fill vector for error on efficiency per LB in the run
+                vErrEffBoth_RPC.push_back(errEffBothRPC);
+                vErrEffBP_RPC.push_back(errEffBPRPC);
+                vErrEffNBP_RPC.push_back(errEffNBPRPC);
             
-            //Fill vector for error on efficiency per LB in the run
-            vErrEffBoth_RPC.push_back(errEffBothRPC);
-            vErrEffBP_RPC.push_back(errEffBPRPC);
-            vErrEffNBP_RPC.push_back(errEffNBPRPC);
-        
+            }
+
+            //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+            vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
+            vEffBP_Planes_runs.push_back(vEffBP_Planes);
+            vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
+            //Only Pb-Pb
+            vEffBoth_Planes_runs_PbPb.push_back(vEffBoth_Planes_PbPb);
+            vEffBP_Planes_runs_PbPb.push_back(vEffBP_Planes_PbPb);
+            vEffNBP_Planes_runs_PbPb.push_back(vEffNBP_Planes_PbPb);
+            
+            //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
+            vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
+            vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
+            vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
+            //Only Pb-Pb
+            vErrEffBoth_Planes_runs_PbPb.push_back(vErrEffBoth_Planes_PbPb);
+            vErrEffBP_Planes_runs_PbPb.push_back(vErrEffBP_Planes_PbPb);
+            vErrEffNBP_Planes_runs_PbPb.push_back(vErrEffNBP_Planes_PbPb);
+
+            //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+            vEffBoth_RPC_runs.push_back(vEffBoth_RPC);
+            vEffBP_RPC_runs.push_back(vEffBP_RPC);
+            vEffNBP_RPC_runs.push_back(vEffNBP_RPC);
+            
+            //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
+            vErrEffBoth_RPC_runs.push_back(vErrEffBoth_RPC);
+            vErrEffBP_RPC_runs.push_back(vErrEffBP_RPC); 
+            vErrEffNBP_RPC_runs.push_back(vErrEffNBP_RPC);
+
+            //Clear vector of eff per Plane in a run 
+            vEffBoth_Planes.clear();
+            vEffBP_Planes.clear();
+            vEffNBP_Planes.clear();
+            vEffBoth_Planes_PbPb.clear();
+            vEffBP_Planes_PbPb.clear();
+            vEffNBP_Planes_PbPb.clear();
+            //Clear vector of error on eff per Plane in a run
+            vErrEffBoth_Planes.clear();
+            vErrEffBP_Planes.clear();
+            vErrEffNBP_Planes.clear();
+            vErrEffBoth_Planes_PbPb.clear();
+            vErrEffBP_Planes_PbPb.clear();
+            vErrEffNBP_Planes_PbPb.clear();
+
+            //Clear vector of eff per RPC in a run 
+            vEffBoth_RPC.clear();
+            vEffBP_RPC.clear();
+            vEffNBP_RPC.clear();
+            //Clear vector of error on eff per RPC in a run
+            vErrEffBoth_RPC.clear();
+            vErrEffBP_RPC.clear();
+            vErrEffNBP_RPC.clear();
         }
-
-        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per plane
-        vEffBoth_Planes_runs.push_back(vEffBoth_Planes);
-        vEffBP_Planes_runs.push_back(vEffBP_Planes);
-        vEffNBP_Planes_runs.push_back(vEffNBP_Planes);
-        //Only Pb-Pb
-        vEffBoth_Planes_runs_PbPb.push_back(vEffBoth_Planes_PbPb);
-        vEffBP_Planes_runs_PbPb.push_back(vEffBP_Planes_PbPb);
-        vEffNBP_Planes_runs_PbPb.push_back(vEffNBP_Planes_PbPb);
-        
-        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per plane
-        vErrEffBoth_Planes_runs.push_back(vErrEffBoth_Planes);
-        vErrEffBP_Planes_runs.push_back(vErrEffBP_Planes); 
-        vErrEffNBP_Planes_runs.push_back(vErrEffNBP_Planes);
-        //Only Pb-Pb
-        vErrEffBoth_Planes_runs_PbPb.push_back(vErrEffBoth_Planes_PbPb);
-        vErrEffBP_Planes_runs_PbPb.push_back(vErrEffBP_Planes_PbPb);
-        vErrEffNBP_Planes_runs_PbPb.push_back(vErrEffNBP_Planes_PbPb);
-
-        //Push back the vector with the eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
-        vEffBoth_RPC_runs.push_back(vEffBoth_RPC);
-        vEffBP_RPC_runs.push_back(vEffBP_RPC);
-        vEffNBP_RPC_runs.push_back(vEffNBP_RPC);
-        
-        //Push back the vector with the error on eff of LB to a larger vector of vectors (one element of this = one run) - per RPC
-        vErrEffBoth_RPC_runs.push_back(vErrEffBoth_RPC);
-        vErrEffBP_RPC_runs.push_back(vErrEffBP_RPC); 
-        vErrEffNBP_RPC_runs.push_back(vErrEffNBP_RPC);
-
-        //Clear vector of eff per Plane in a run 
-        vEffBoth_Planes.clear();
-        vEffBP_Planes.clear();
-        vEffNBP_Planes.clear();
-        vEffBoth_Planes_PbPb.clear();
-        vEffBP_Planes_PbPb.clear();
-        vEffNBP_Planes_PbPb.clear();
-        //Clear vector of error on eff per Plane in a run
-        vErrEffBoth_Planes.clear();
-        vErrEffBP_Planes.clear();
-        vErrEffNBP_Planes.clear();
-        vErrEffBoth_Planes_PbPb.clear();
-        vErrEffBP_Planes_PbPb.clear();
-        vErrEffNBP_Planes_PbPb.clear();
-
-        //Clear vector of eff per RPC in a run 
-        vEffBoth_RPC.clear();
-        vEffBP_RPC.clear();
-        vEffNBP_RPC.clear();
-        //Clear vector of error on eff per RPC in a run
-        vErrEffBoth_RPC.clear();
-        vErrEffBP_RPC.clear();
-        vErrEffNBP_RPC.clear();
-
     } //End of loop on all runs PbPb
+
+    bool runsRecoByMe = true;
+
+    if (runsRecoByMe) {
+
+        for (unsigned int i = 0; i < vRun_PbPb2023.size(); i++) {
+            if ((int)vRun_PbPb2023.at(i) == 544565) { //Add one more same run number since we have the same run both in centrally reconstructed data as well as in those reconstructed by me on grid
+                vRun_PbPb2023.insert(vRun_PbPb2023.begin() + i + 1,544565);
+                vIR_PbPb2023.insert(vIR_PbPb2023.begin() + i +1,vIR_PbPb2023.at(i));
+                vBField_PbPb2023.insert(vBField_PbPb2023.begin() + i + 1,vBField_PbPb2023.at(i));
+                break;
+            }
+        }
+        
+        for (unsigned int i = 0; i < vRun_PbPb2023.size(); i++) {
+            if ((int)vRun_PbPb2023.at(i) == 545185) {
+                vRun_PbPb2023.insert(vRun_PbPb2023.begin() + i + 1,545185);
+                vIR_PbPb2023.insert(vIR_PbPb2023.begin() + i +1,vIR_PbPb2023.at(i));
+                vBField_PbPb2023.insert(vBField_PbPb2023.begin() + i + 1,vBField_PbPb2023.at(i));
+                break;
+            }
+        }
+
+        for (unsigned int i = 0; i < vRun_2023.size(); i++) {
+            if ((int)vRun_2023.at(i) == 544565) { //Add one more same run number since we have the same run both in centrally reconstructed data as well as in those reconstructed by me on grid
+                vRun_2023.insert(vRun_2023.begin() + i + 1,544565);
+                vBField_2023.insert(vBField_2023.begin() + i + 1,vBField_2023.at(i));
+                break;
+            }
+        }
+
+        for (unsigned int i = 0; i < vRun_2023.size(); i++) {
+            if ((int)vRun_2023.at(i) == 545185) {
+                vRun_2023.insert(vRun_2023.begin() + i + 1,545185);
+                vBField_2023.insert(vBField_2023.begin() + i + 1,vBField_2023.at(i));
+                break;
+            }
+        }
+    }
 
     cout << "Size of vStart_pp2023 " << vStart_pp2023.size() << endl;
     cout << "Size of vStart_PbPb2023 " << vStart_PbPb2023.size() << endl;
     cout << "Size of vStart_2023 " << vStart_2023.size() << endl;
+    cout << "Size of vRun_2023 " << vRun_2023.size() << endl;
+    cout << "Size of vRun_2023PbPb " << vRun_PbPb2023.size() << endl;
     cout << "Size of vEffBoth_Planes_PbPb " << vEffBoth_Planes_runs_PbPb.size() << endl;
     cout << "size of B field vector (pp) " << vBField_pp2023.size() << endl;
     cout << "size of B field vector (PbPb) " << vBField_PbPb2023.size() << endl;
@@ -627,14 +725,13 @@ void effByTime() { //Main function
         }
     }
 
+    cout << "vIR_PbPb2023 size " << vIR_PbPb2023.size() << endl;
     cout << vEffPerPlanePerRunBoth_PbPb[0].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[1].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[2].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[3].size() << endl;
     cout << vEffPerPlanePerRunBP_PbPb[0].size() << "\t" << vEffPerPlanePerRunBP_PbPb[1].size() << "\t" << vEffPerPlanePerRunBP_PbPb[2].size() << "\t" << vEffPerPlanePerRunBP_PbPb[3].size() << endl;
     cout << vEffPerPlanePerRunNBP_PbPb[0].size() << "\t" << vEffPerPlanePerRunNBP_PbPb[1].size() << "\t" << vEffPerPlanePerRunNBP_PbPb[2].size() << "\t" << vEffPerPlanePerRunNBP_PbPb[3].size() << endl;
 
     //Plane eff vs IR
     vector<TGraphErrors*> gEffPlaneBothPlanesIR, gEffPlaneBPIR, gEffPlaneNBPIR;
-
-    v.insert(v.begin(), 6);
     
     for (int i = 0; i < nBinsPlane; i++) {
         TGraphErrors *g1 = new TGraphErrors(vIR_PbPb2023.size(),&vIR_PbPb2023[0],&vEffPerPlanePerRunBoth_PbPb[i][0],NULL,&vErrEffPerPlanePerRunBoth_PbPb[i][0]);
@@ -650,7 +747,7 @@ void effByTime() { //Main function
     //Let's try to color the markers differently in the Eff v IR plot
     int elemNumber = 0;
     for (unsigned int i = 0; i < vIR_PbPb2023.size(); i++) {
-        if (vRun_PbPb2023_IR.at(i) == 544868) {
+        if (vRun_PbPb2023.at(i) == 544868) {
             elemNumber = i;
             break;
         }
@@ -833,7 +930,7 @@ void effByTime() { //Main function
     for (int i = 0; i < nBinsPlane; i++) {
         cEffPerPlaneBoth->cd(i+1);
         gEffPerRunPlaneBoth.at(i)->SetMarkerStyle(8);
-        gEffPerRunPlaneBoth.at(i)->SetMarkerSize(1);
+        gEffPerRunPlaneBoth.at(i)->SetMarkerSize(0);
         gEffPerRunPlaneBoth.at(i)->SetMarkerColor(kBlack);
         gEffPerRunPlaneBoth.at(i)->SetTitle((planeName[i] + " Both planes").c_str());
         if (isTime) {
@@ -859,15 +956,45 @@ void effByTime() { //Main function
         gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneBoth.at(i)->Draw("AP");
+        
+        bool changedMarkerPlus = false, changedMarkerMinus = false; //this bool is used because the first run that is analyzed is the one from the data reconstructed on grid and then the
+        //same one from AO2D (same run number) and in this way I can change the marker only for the run that I have reconstructed myself 
+
         for (int j = 0; j < gEffPerRunPlaneBoth.at(i)->GetN(); j++) {
-            if (vBField_2023.at(j) == "minus") {
-                gEffPerRunPlaneBoth.at(i)->GetPoint(j,x,y);
-                m = new TMarker(x,y,8);
-                m->SetMarkerColor(kOrange);
-                m->SetMarkerSize(1);
+            gEffPerRunPlaneBoth.at(i)->GetPoint(j,x,y);
+
+            if (vBField_2023.at(j) == "plus") {
+                if ((int)x == 544565 && changedMarkerPlus == false) {
+                    //cout << "here!" << endl;
+                    m = new TMarker(x,y,33);
+                    m->SetMarkerColor(kBlack);
+                    m->SetMarkerSize(2);  
+                    changedMarkerPlus = true;
+                }
+                else {
+                    m = new TMarker(x,y,8);
+                    m->SetMarkerColor(kBlack);
+                    m->SetMarkerSize(1);
+                }
+                m->Draw("SAME");
+            }
+            
+            else if (vBField_2023.at(j) == "minus") {
+                if ((int)x == 545185 && changedMarkerMinus == false) {
+                    m = new TMarker(x,y,33);
+                    m->SetMarkerColor(kOrange);
+                    m->SetMarkerSize(2);
+                    changedMarkerMinus = true;
+                }
+                else {
+                    m = new TMarker(x,y,8);
+                    m->SetMarkerColor(kOrange);
+                    m->SetMarkerSize(1);
+                }               
                 m->Draw("SAME");
             }
         }
+
         TLegend *lEffPlaneBoth = (TLegend*)lEffPlenBothPlanesIR->Clone();
         lEffPlaneBoth->Draw("SAME");
         gPad->Update();
@@ -918,7 +1045,46 @@ void effByTime() { //Main function
         gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneBP.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneBP.at(i)->Draw("AP");
+
+        bool changedMarkerPlus = false, changedMarkerMinus = false; //this bool is used because the first run that is analyzed is the one from the data reconstructed on grid and then the
+        //same one from AO2D (same run number) and in this way I can change the marker only for the run that I have reconstructed myself 
+
         for (int j = 0; j < gEffPerRunPlaneBP.at(i)->GetN(); j++) {
+            gEffPerRunPlaneBP.at(i)->GetPoint(j,x,y);
+
+            if (vBField_2023.at(j) == "plus") {
+                if ((int)x == 544565 && changedMarkerPlus == false) {
+                    //cout << "here!" << endl;
+                    m = new TMarker(x,y,33);
+                    m->SetMarkerColor(kRed);
+                    m->SetMarkerSize(2);  
+                    changedMarkerPlus = true;
+                }
+                else {
+                    m = new TMarker(x,y,8);
+                    m->SetMarkerColor(kRed);
+                    m->SetMarkerSize(1);
+                }
+                m->Draw("SAME");
+            }
+            
+            else if (vBField_2023.at(j) == "minus") {
+                if ((int)x == 545185 && changedMarkerMinus == false) {
+                    m = new TMarker(x,y,33);
+                    m->SetMarkerColor(kOrange);
+                    m->SetMarkerSize(2);
+                    changedMarkerMinus = true;
+                }
+                else {
+                    m = new TMarker(x,y,8);
+                    m->SetMarkerColor(kOrange);
+                    m->SetMarkerSize(1);
+                }               
+                m->Draw("SAME");
+            }
+        }
+
+        /*for (int j = 0; j < gEffPerRunPlaneBP.at(i)->GetN(); j++) {
             if (vBField_2023.at(j) == "minus") {
                 gEffPerRunPlaneBP.at(i)->GetPoint(j,x,y);
                 m = new TMarker(x,y,8);
@@ -926,7 +1092,7 @@ void effByTime() { //Main function
                 m->SetMarkerSize(1);
                 m->Draw("SAME");
             }
-        }
+        }*/
         TLegend *lEffPlaneBP = (TLegend*)lEffPlenBPIR->Clone();
         lEffPlaneBP->Draw("SAME");
         gPad->Update();
@@ -977,7 +1143,47 @@ void effByTime() { //Main function
         gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneNBP.at(i)->Draw("AP");
+
+        bool changedMarkerPlus = false, changedMarkerMinus = false; //this bool is used because the first run that is analyzed is the one from the data reconstructed on grid and then the
+        //same one from AO2D (same run number) and in this way I can change the marker only for the run that I have reconstructed myself 
+
         for (int j = 0; j < gEffPerRunPlaneNBP.at(i)->GetN(); j++) {
+            gEffPerRunPlaneNBP.at(i)->GetPoint(j,x,y);
+
+            if (vBField_2023.at(j) == "plus") {
+                if ((int)x == 544565 && changedMarkerPlus == false) {
+                    //cout << "here!" << endl;
+                    m = new TMarker(x,y,33);
+                    m->SetMarkerColor(kGreen+3);
+                    m->SetMarkerSize(2);  
+                    changedMarkerPlus = true;
+                }
+                else {
+                    m = new TMarker(x,y,8);
+                    m->SetMarkerColor(kGreen+3);
+                    m->SetMarkerSize(1);
+                }
+                m->Draw("SAME");
+            }
+            
+            else if (vBField_2023.at(j) == "minus") {
+                if ((int)x == 545185 && changedMarkerMinus == false) {
+                    m = new TMarker(x,y,33);
+                    m->SetMarkerColor(kOrange);
+                    m->SetMarkerSize(2);
+                    changedMarkerMinus = true;
+                }
+                else {
+                    m = new TMarker(x,y,8);
+                    m->SetMarkerColor(kOrange);
+                    m->SetMarkerSize(1);
+                }               
+                m->Draw("SAME");
+            }
+        }
+
+
+        /*for (int j = 0; j < gEffPerRunPlaneNBP.at(i)->GetN(); j++) {
             if (vBField_2023.at(j) == "minus") {
                 gEffPerRunPlaneNBP.at(i)->GetPoint(j,x,y);
                 m = new TMarker(x,y,8);
@@ -985,7 +1191,7 @@ void effByTime() { //Main function
                 m->SetMarkerSize(1);
                 m->Draw("SAME");
             }
-        }
+        }*/
         TLegend *lEffPlaneNBP = (TLegend*)lEffPlenNBPIR->Clone();
         lEffPlaneNBP->Draw("SAME");
         gPad->Update();
@@ -1317,8 +1523,23 @@ void effByTime() { //Main function
         gEffPerRunRPCNBP.at(i)->Draw("AP");
     }
     
-    hRun_pp2023.close();
-    hDate_pp2023.close();
-    hRun_PbPb2023.close();
-    hDate_PbPb2023.close();
+    //hRun_pp2023.close();
+    //hDate_pp2023.close();
+    //hRun_PbPb2023.close();
+    //hDate_PbPb2023.close();
+    hIR_pp2023.close();
+    hIR_PbPb2023.close();
+
+    bool saveData = true;
+    
+    if (saveData) {
+        fOutEffPlane->cd();
+        cEffPlaneBothPlanesIR->Write("effPerPlaneBothPlanesVsIR");
+        cEffPlaneBPIR->Write("effPerPlaneBPVsIR");
+        cEffPlaneNBPIR->Write("effPerPlaneNBPVsIR");
+        cEffPerPlaneBoth->Write("effPerPlaneBothPlanesVsIR");
+        cEffPerPlaneBP->Write("effPerPlaneBPVsRun");
+        cEffPerPlaneNBP->Write("effPerPlaneBPVsRun");
+        fOutEffPlane->Close();
+    }
 }
