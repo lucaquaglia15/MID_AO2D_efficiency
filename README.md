@@ -24,6 +24,8 @@ where the --condition-remap is used to tell the digitizer code to fetch the obje
 
 The format of the ccdb file is to have a `std::vector` of `o2::mid::ChEffCounter` objects.
 
-Each element of this vector is a struct that contains the following information: `deID` (the ID number of the RPC within the MID detector), `columnId` (the column ...), and `lineId` (...) as well as a `std:array` of 4 elements, where element 0 is the counts on the bending plane, element 1 is the counts on the non-bending plane, element 2 is the counts on both panes, anf element 3 is the total counts
+Each element of this vector is a struct that contains the following information: `deId` (the ID number of the RPC within the MID detector), `columnId` (the column ...), and `lineId` (...) as well as a `std:array` of 4 elements, where element 0 is the counts on the bending plane, element 1 is the counts on the non-bending plane, element 2 is the counts on both panes, anf element 3 is the total counts.
 
-![Image](https://github.com/user-attachments/assets/667a1f86-3df1-42bc-85fb-9c9dec50cde6)
+The following figure shows the scheme of the ALICE MID with the detector numbering scheme adopted in ALICE O2 and it shows the values of `deId`
+
+![Image](https://github.com/user-attachments/assets/5f99cb21-8148-4185-bc81-34cc96f9aebc)
