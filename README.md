@@ -62,3 +62,33 @@ $ root produceObjects.C
 $ root prepareCCDBUpload.C
 ```
 - When this is finished you just have to zip the folder where the .root files are saved and upload it to JIRA.
+
+Here are some notes on how the CCDB objects are saved to a .root file. This is done using the `WriteObjectAny` member function of the `TDirectory` ROOT CERN class which takes as first argument the pointer to the object (in this case the `std::vector` of `o2::mid::ChEffCounter` objects) and the second argument is the object type (`std::vector<o2::mid::ChEffCounter>`) and the third element is the name with which they will be saved in the .root file (`ccdb-object`).
+
+Once the obejects are saved in a .root file, one can check the content in this way (this are lines of code to be launched inside of root in the O2Physics environment but they can be included in a macro).
+
+```
+$ alienv enter O2Physics/latest
+$ root
+$ #
+$ TFile *f = new TFile("o2-mid-ChEffCounter_xxxxxx.root","READ") //xxxxxx is the run number
+$ f->cd()
+$ vector<o2::mid::ChEffCounter> *v = (vector<o2::mid::ChEffCounter>*)f->Get("ccdb-object")
+$  cout << v->at(yy).getCounts(o2::mid::EffCountType::BothPlanes) //to print out the value of the specific counter (yyy is the vector element
+```
+- The vector element depends on how the vector was filled. In this case I have used three loops. A first one on the detector elements (0-71), then one on the columns (0-7) and one on the lines (0-depends on the specific deId). Referring to the LB segmentation scheme (to give an idea), the elements are as follows: 
+	- v->at(0) corresponds to LB1
+	- v->at(1) corresponds to LB17
+	- v->at(2) corresponds to LB39
+	- v->at(3) corresponds to LB61
+	- v->at(4) corresponds to LB77 
+	- v->at(5) corresponds to LB93
+	- v->at(6) corresponds to LB109
+	
+	- v->at(15) corresponds to LB78
+	
+	- v->at(34) corresponds to LB7
+	
+and so on an so forth 
+
+
