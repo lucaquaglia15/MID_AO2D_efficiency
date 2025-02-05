@@ -50,9 +50,15 @@ $ alienv enter O2Physics/latest
 $ python utils.py config.yml —download
 ```
 
-- Once the files have been downloaded, one needs to fetch the information on each run (i.e. start/end time, interaction rate, magnetic field polarity etc..). To do this, you can use the `getInteractionRate.py` script. Open it and modify the list `runs` to include the same runs you have downloaded from the ALICE grid and modify also the `basePath`/`period` variables to point in the same folder as the one containg all the runs you just downloaded. Once done, launch the script with the following command. This will create a .txt file called `run_IR_Bfield.txt` that has different columns (in order: 0/1 if the run has to be considered or not >> run number >> IR (it makes sense only in Pb-Pb) >> megntic field polarity >> start of run >> end of run. This file is then processed further by other scripts.
+- Once the files have been downloaded, one needs to fetch the information on each run (i.e. start/end time, interaction rate, magnetic field polarity etc..). To do this, you can use the `getInteractionRate.py` script (that has to be in the same folder as `task.C`). Open it and modify the list `runs` to include the same runs you have downloaded from the ALICE grid and modify also the `basePath`/`period` variables to point in the same folder as the one containg all the runs you just downloaded. Once done, launch the script with the following command. This will create a .txt file called `run_IR_Bfield.txt` that has different columns (in order: 0/1 if the run has to be considered or not >> run number >> IR (it makes sense only in Pb-Pb) >> megntic field polarity >> start of run >> end of run. This file is then processed further by other scripts.
 
 ```
 $ python3 getInteractionRate.py python3 getInteractionRate.py -f 551418 -l 551427 --run mdquality --duration 1
 ```
-
+- The first one is `produceObjects.C` and the second one is `prepareCCDBUpload.C`. Before running them you should modify the paths in both file to point to the same folder as where all the files from all the runs have been saved. Then do the following (this will create one .root file for each run and it will also create the upload sciprt `upload.sh` in the same folder as where all the runs have been saved).
+```
+$ alienv enter O2Physics/latest
+$ root produceObjects.C
+$ root prepareCCDBUpload.C
+```
+- When this is finished you just have to zip the folder where the .root files are saved and upload it to JIRA.
