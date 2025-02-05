@@ -74,8 +74,10 @@ $ #
 $ TFile *f = new TFile("o2-mid-ChEffCounter_xxxxxx.root","READ") //xxxxxx is the run number
 $ f->cd()
 $ vector<o2::mid::ChEffCounter> *v = (vector<o2::mid::ChEffCounter>*)f->Get("ccdb-object")
-$  cout << v->at(yy).getCounts(o2::mid::EffCountType::BothPlanes) //to print out the value of the specific counter (yyy is the vector element
+$  cout << v->at(yy).getCounts(o2::mid::EffCountType::xxxxxx) 
 ```
+- The last command is needed to print out the value of the specific counter; yyy is the vector element and xxxxxx is the efficiency type, which can be: `BendPlane`, `NonBendPlane`, `BothPlanes`, `AllTracks` (this is written in `o2 >> DataFormats >> Detectors >> MUON >> MID >> include >> DataFormatsMID >> ChEffCounter.h)
+
 - The vector element depends on how the vector was filled. In this case I have used three loops. A first one on the detector elements (0-71), then one on the columns (0-7) and one on the lines (0-depends on the specific deId). Referring to the LB segmentation scheme (to give an idea), the elements are as follows: 
 	- v->at(0) corresponds to LB1
 	- v->at(1) corresponds to LB17
@@ -89,6 +91,6 @@ $  cout << v->at(yy).getCounts(o2::mid::EffCountType::BothPlanes) //to print out
 	
 	- v->at(34) corresponds to LB7
 	
-and so on an so forth 
+and so on an so forth. The last thing  
 
 
