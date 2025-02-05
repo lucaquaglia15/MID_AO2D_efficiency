@@ -3,7 +3,7 @@ This code is used to compute the efficiency of the ALICE MID RPCs starting from 
 The input file is also inserted in the repo and in order to use this code you should enter the O2 environment with the command:
 
 ```
-alenv enter O2/latest
+alienv enter O2/latest
 ```
 Then enter root and exectue:
 
@@ -41,4 +41,18 @@ Few examples of column/line numbering of LB:
 
 This is important because each element of the `std::vector` of `o2::mid::ChEffCounter` objects must be identified by the deId, columnId and lineId values described earlier.
 
-The CCDB objects cannot be uploaded directly by the user to the [ALICE production CCDB](http://alice-ccdb.cern.ch/browse/MID/Calib/ChamberEfficiency) but only on a local instance of the CCDB. In order to have them uploaded centrally, one has to open a [JIRA ticket](https://its.cern.ch/jira/projects/O2/summary), such as [this one](https://its.cern.ch/jira/browse/O2-5759) to have them uploaded. To follow this route, one needs to save the CCDB objects in a .root format and upload them to JIRA, together with an upload script. To this end, two codes have been developed:
+The CCDB objects are produced on a run-by-run basis and they cannot be uploaded directly by the user to the [ALICE production CCDB](http://alice-ccdb.cern.ch/browse/MID/Calib/ChamberEfficiency) but only on a local instance of the CCDB. In order to have them uploaded centrally, one has to open a [JIRA ticket](https://its.cern.ch/jira/projects/O2/summary), such as [this one](https://its.cern.ch/jira/browse/O2-5759) to have them uploaded. To follow this route, one needs to save the CCDB objects in a .root format and upload them to JIRA, together with an upload script. To this end, the following files can be used:
+
+- One needs to download the Hyperloop output file from the ALICE grid. Open the `config.yml` file and change the `output_dir_name` to your desired output, modify the `run_list` and the `alien_input_path` lists with the run numbers and the path of the files on the ALICE grid respectively. One this is done do the following to download the data from the ALICE grid, creating one folder for each run and each folder contains the `AnalysisResults.root` file inside.
+
+```
+$ alienv enter O2Physics/latest
+$ python utils.py config.yml —download
+```
+
+- Once the files have been downloaded, one needs to fetch the information on each run (i.e. start/end time, interaction rate, magnetic field polarity etc..). To do this, you can use the `getInteractionRate.py` script. Open it and modify the list `runs` to include the same runs you have downloaded from the ALICE grid and modify also the `basePath`/`period` variables to point in the same folder as the one containg all the runs you just downloaded. Once done, launch the script with the following command. This will create a .txt file called `run_IR_Bfield.txt` that has different columns (in order: 0/1 if the run has to be considered or not >> run number >> IR (it makes sense only in Pb-Pb) >> megntic field polarity >> start of run >> end of run. This file is then processed further by other scripts.
+
+```
+$ python3 getInteractionRate.py python3 getInteractionRate.py -f 551418 -l 551427 --run mdquality --duration 1
+```
+
