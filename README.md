@@ -74,7 +74,7 @@ $ #
 $ TFile *f = new TFile("o2-mid-ChEffCounter_xxxxxx.root","READ") //xxxxxx is the run number
 $ f->cd()
 $ vector<o2::mid::ChEffCounter> *v = (vector<o2::mid::ChEffCounter>*)f->Get("ccdb-object")
-$  cout << v->at(yy).getCounts(o2::mid::EffCountType::xxxxxx) 
+$ cout << v->at(yy).getCounts(o2::mid::EffCountType::xxxxxx) 
 ```
 - The last command is needed to print out the value of the specific counter; yyy is the vector element and xxxxxx is the efficiency type, which can be: `BendPlane`, `NonBendPlane`, `BothPlanes`, `AllTracks` (this is written in `o2 >> DataFormats >> Detectors >> MUON >> MID >> include >> DataFormatsMID >> ChEffCounter.h)
 
