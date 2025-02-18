@@ -91,6 +91,6 @@ $ cout << v->at(yy).getCounts(o2::mid::EffCountType::xxxxxx)
 	
 	- v->at(34) corresponds to LB7
 	
-and so on an so forth. The last thing  
+and so on an so forth.
 
 
