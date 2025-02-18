@@ -39,7 +39,9 @@ void prepareCCDBUpload() {
     //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
     //string period = "LHC22o_pass7_minBias";
     //string period = "LHC22_pass7_skimmed";
-    string period = "LHC23_pass4_skimmed";
+    //string period = "LHC23_pass4_skimmed";
+    //string period = "LHC23_PbPb_pass4";
+    string period = "LHC24_pass1_skimmed";
     string globalPath = "/media/luca/Extreme SSD/MIDefficieincy/"+period+"/"; //Where txt file with star/end of run is stored
 
     string ccdbPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/ccdb/"; //Where CCDB objects are stored
@@ -87,6 +89,6 @@ void prepareCCDBUpload() {
 
     for (unsigned int i = 0; i < vRun.size(); i++) {
         hOut << "o2-ccdb-upload --host \"$ccdbhost\" -p MID/Calib/ChamberEfficiency -f o2-mid-ChEffCounter_" + to_string(vRun.at(i)) + 
-        ".root -k ccdb-object --starttimestamp " + to_string(vStart.at(i)) + " --endtimestamp " + to_string(vEnd.at(i)) + " -m \"runNumber=" + to_string(vRun.at(i)) + ";JIRA=O2-5759;\"\n";
+        ".root -k ccdb-object --starttimestamp " + to_string(vStart.at(i)) + " --endtimestamp " + to_string(vEnd.at(i)) + " -m \"runNumber=" + to_string(vRun.at(i)) + ";JIRA=O2-5781;adjustableEOV=true\"\n";
     }
 }
