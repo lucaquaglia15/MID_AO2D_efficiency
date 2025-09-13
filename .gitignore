@@ -11,3 +11,4 @@ LHC23_PbPb_pass4/
 LHC23_pass4_skimmed/
 LHC24_pass1_skimmed/
 __pycache__/
+runTableMaker.sh
