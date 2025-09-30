@@ -10,6 +10,10 @@ LHC22_pass7_skimmed/
 LHC23_PbPb_pass4/
 LHC23_pass4_skimmed/
 LHC24_pass1_skimmed/
+LHC25ad_pass2
+LHC25ae_pass1
+LHC25ae_pass2
+LHC25af_pass2
 __pycache__/
 runTableMaker.sh
 sim/
