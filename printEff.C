@@ -12,19 +12,12 @@
 #include "DataFormatsMID/Track.h" //MID track from O2
 #include "DataFormatsMID/ChEffCounter.h" //Chamber efficiency counter
 
+//To create/delete folders and/or check they exist
+namespace fs = std::filesystem;
+
 const char ext[20] =".root";
 
 void printEff() {
-    /*TFile *f1 = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed/detailedOutput/details_run_" +to_string(firstRun) + "_" + to_string(lastRun) + ".root").c_str(),"READ");
-    f1->cd()
-    TH1F *hTracksBefore = (TH1F*)f1->Get()
-
-    TH1F *hTracksAfter = (TH1F*)f1->Get()*/
-
-
-    //TFile *f = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_pass4_skimmed/ccdb/merged/o2-mid-ChEffCounter_" + to_string(firstRun) + "_" + to_string(lastRun) + ".root").c_str(),"READ"); //xxxxxx is the run number
-    //f->cd();
-    //vector<o2::mid::ChEffCounter> *v = (vector<o2::mid::ChEffCounter>*)f->Get("ccdb-object");
 
     vector<float> vErrEffBP, vErrEffNBP, vErrEffBoth;
     vector<float> vErrErrEffBP, vErrErrEffNBP, vErrErrEffBoth;
@@ -37,12 +30,29 @@ void printEff() {
 
     //Enter in the scan folder 
     //string period = "LHC23_pass4_skimmed";
-    string period = "LHC23_PbPb_pass4";
+    //string period = "LHC23_PbPb_pass4";
+    string period = "LHC25ad_pass2";
+    //string period = "LHC25ae_pass2";
+    //string period = "LHC24_ppref_pass1"; //pp ref 2024
 
-    int trackGoal = 7e+6;
+    //int trackGoal = 0;
+    int trackGoal = 300000000;
 
-	string fol = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/" + period + "/ccdb/merged/" + to_string(trackGoal) + "/";
+    //Crate sub-folder "merged" within period subfolder
+	string fol = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/" + period + "/ccdb/merged/";
+    
+    if (!fs::exists(fol.c_str() )) {
+        fs::create_directories(fol.c_str());
+    }
+    
+    //Add track goal number to folder
+    fol += to_string(trackGoal) + "/";
+    
+    if (!fs::exists(fol.c_str() )) {
+        fs::create_directories(fol.c_str());
+    }
 
+    //Output files
     TFile *fOut = new TFile((fol + "outFile_merged_" + period + "_" + to_string(trackGoal)+".root").c_str() ,"RECREATE");
 
 	gSystem->cd(fol.c_str()); //Enter folder
@@ -103,6 +113,10 @@ void printEff() {
         TH1F *hEffNBP = new TH1F("hEffNBP",("Efficiency error NBP " +to_string(first) + "_" + to_string(last)).c_str(),30,0.,5.);
         TH1F *hEffBoth = new TH1F("hEffBoth",("Efficiency error Both " +to_string(first) + "_" + to_string(last)).c_str(),30,0.,5.);
 
+        TH1F *hBP = new TH1F("hBP",("Efficiency BP " +to_string(first) + "_" + to_string(last)).c_str(),300,0.,105.);
+        TH1F *hNBP = new TH1F("hNBP",("Efficiency NBP " +to_string(first) + "_" + to_string(last)).c_str(),300,0.,105.);
+        TH1F *hBoth = new TH1F("hBoth",("Efficiency Both " +to_string(first) + "_" + to_string(last)).c_str(),300,0.,105.);
+
         std::cout << "Opening " << entry << " first: " << first << " last: " << last << std::endl;
 
         //Placeholder for two runs, done visually later
@@ -118,6 +132,7 @@ void printEff() {
         float NBPeff = 0., errNBPeff = 0.;
         float Botheff = 0., errBotheff = 0.;
 
+        //Print and add to histo
         for (int i = 0; i < 936; i++) {
             //cout << "Board: " << i << endl;
 
@@ -130,10 +145,12 @@ void printEff() {
                 Botheff = (v->at(i).getCounts(o2::mid::EffCountType::BothPlanes)/(float)v->at(i).getCounts(o2::mid::EffCountType::AllTracks))*100; 
                 errBotheff = TMath::Sqrt((Botheff*(100-Botheff))/(v->at(i).getCounts(o2::mid::EffCountType::AllTracks)));
 
-                //cout << "BP tracks: " << v->at(i).getCounts(o2::mid::EffCountType::BendPlane) << " BP eff: " << BPeff  << " +- " << errBPeff << endl;
-                //cout << "NBP tracks: " << v->at(i).getCounts(o2::mid::EffCountType::NonBendPlane) << " NBP eff: " << NBPeff << " +- " << errNBPeff << endl;
-                //cout << "Both tracks: " << v->at(i).getCounts(o2::mid::EffCountType::BothPlanes) << " Both eff: " << Botheff << " +- " << errBotheff << endl;
+                //Efficiency
+                hBP->Fill(BPeff);
+                hNBP->Fill(NBPeff);
+                hBoth->Fill(Botheff);
 
+                //Error on efficiency
                 hEffBP->Fill(errBPeff);
                 hEffNBP->Fill(errNBPeff);
                 hEffBoth->Fill(errBotheff);
@@ -147,21 +164,23 @@ void printEff() {
 
         vErrEffBP.push_back(hEffBP->GetMean());
         vErrErrEffBP.push_back(hEffBP->GetMeanError());
+        
         vErrEffNBP.push_back(hEffNBP->GetMean());
         vErrErrEffNBP.push_back(hEffNBP->GetMeanError());
+        
         vErrEffBoth.push_back(hEffBoth->GetMean());
         vErrErrEffBoth.push_back(hEffBoth->GetMeanError());
 
         double dx = 0.3;
         //
         double meanBP = hEffBP->GetMean();
-        double meanErrBP = hEffBP->GetMeanError();
+        double meanErrBP = hEffBP->GetStdDev();
 
         double meanNBP = hEffNBP->GetMean();
-        double meanErrNBP = hEffNBP->GetMeanError();
+        double meanErrNBP = hEffNBP->GetStdDev();
 
         double meanBoth = hEffBoth->GetMean();
-        double meanErrBoth = hEffBoth->GetMeanError();
+        double meanErrBoth = hEffBoth->GetStdDev();
         //
         yminBP = std::min(yminBP, meanBP - meanErrBP);
         ymaxBP = std::max(ymaxBP, meanBP + meanErrBP);
@@ -195,6 +214,26 @@ void printEff() {
         fileEff->Close();
         delete fileEff;
 
+        //Efficiency
+        TCanvas *cEffBP = new TCanvas();
+        cEffBP->cd();
+        hBP->Draw("HISTO");
+        hBP->GetXaxis()->SetTitle("LB efficiency [%] BP");
+        hBP->GetYaxis()->SetTitle("Counts");
+
+        TCanvas *cEffNBP = new TCanvas();
+        cEffNBP->cd();
+        hNBP->Draw("HISTO");
+        hNBP->GetXaxis()->SetTitle("LB efficiency [%] NBP");
+        hNBP->GetYaxis()->SetTitle("Counts");
+
+        TCanvas *cEffBoth = new TCanvas();
+        cEffBoth->cd();
+        hBoth->Draw("HISTO");
+        hBoth->GetXaxis()->SetTitle("LB efficiency [%] Both");
+        hBoth->GetYaxis()->SetTitle("Counts");
+
+        //Error on efficiency
         TCanvas *cErrEffBP = new TCanvas();
         cErrEffBP->cd();
         hEffBP->Draw("HISTO");
@@ -204,16 +243,21 @@ void printEff() {
         TCanvas *cErrEffNBP = new TCanvas();
         cErrEffNBP->cd();
         hEffNBP->Draw("HISTO");
-        hEffNBP->GetXaxis()->SetTitle("LB error on efficiency [%] BP");
+        hEffNBP->GetXaxis()->SetTitle("LB error on efficiency [%] NBP");
         hEffNBP->GetYaxis()->SetTitle("Counts");
 
         TCanvas *cErrEffBoth = new TCanvas();
         cErrEffBoth->cd();
         hEffBoth->Draw("HISTO");
-        hEffBoth->GetXaxis()->SetTitle("LB error on efficiency [%] BP");
+        hEffBoth->GetXaxis()->SetTitle("LB error on efficiency [%] Both");
         hEffBoth->GetYaxis()->SetTitle("Counts");
 
         fOut->cd();
+        //Efficiency
+        cEffBP->Write(("BP_efficiency_" + to_string(first) + "_" + to_string(last)).c_str());
+        cEffNBP->Write(("NBP_efficiency_" + to_string(first) + "_" + to_string(last)).c_str());
+        cEffBoth->Write(("Both_efficiency_" + to_string(first) + "_" + to_string(last)).c_str());
+        //Error on efficiency
         cErrEffBP->Write(("BP_" + to_string(first) + "_" + to_string(last)).c_str());
         cErrEffNBP->Write(("NBP_" + to_string(first) + "_" + to_string(last)).c_str());
         cErrEffBoth->Write(("Both_" + to_string(first) + "_" + to_string(last)).c_str());
@@ -221,6 +265,10 @@ void printEff() {
         delete hEffBP;
         delete hEffNBP;
         delete hEffBoth;
+
+        delete hBP;
+        delete hNBP;
+        delete hBoth;
     }
 
     //////
@@ -251,7 +299,7 @@ void printEff() {
         gErrEffBP->GetXaxis()->SetBinLabel(gErrEffBP->GetXaxis()->FindBin(i+0.5), Form("%d-%d", (int)vFirstRun[i], (int)vLastRun[i])); // Find out which bin on the x-axis the point corresponds to and set the bin label
     }
     TAxis *axBP = gErrEffBP->GetXaxis();
-    axBP->LabelsOption("d");  
+    //axBP->LabelsOption("d");  
     //Re-Draw graph on top of the error boxes
     gErrEffBP->Draw("P SAME");
     gPad->Update();
