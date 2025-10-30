@@ -18,3 +18,4 @@ LHC25af_pass2
 __pycache__/
 runTableMaker.sh
 sim/
+modifyMetaData.py
