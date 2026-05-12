@@ -1,5 +1,14 @@
 This code is used to compute the efficiency of the ALICE MID RPCs starting from the AO2D objects and it uploads the CCDB object to the ALICE test ccdb
 
+The files in the folder perform the following:
+
+1) produceObjects.C:  
+
+2) prepareCCDBUpload.C:
+
+3) plotEfficiency.C: allows the user to produce the trend of the efficiency per MID plane (MT11, MT12, MT21, MT22) in the bending plane (BP), non bending plane (NBP) and both planes.
+   By editing the first lines of the code the user can select which data-taking periods to be displayed in the plot and also enable/disable the p_{t} cut 
+
 The input file is also inserted in the repo and in order to use this code you should enter the O2 environment with the command:
 
 ```
