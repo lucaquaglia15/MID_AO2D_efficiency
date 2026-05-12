@@ -22,6 +22,8 @@
 #include <filesystem>
 #include "TKey.h"
 #include "THnSparse.h"
+#include "TGraphAsymmErrors.h"
+#include "TMultiGraph.h"
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
 #include "MIDBase/DetectorParameters.h" //Detector parameters
@@ -45,12 +47,16 @@ int binsPt = 150;
 float ptStep = (maxPt-minPt)/binsPt;
 int ptMinCut = 1.8/ptStep;
 
+int LBnumber = 35;
+
 //o2::ccdb::CcdbApi api; //CCDB API as global object
 o2::mid::Mapping mapping; //MID mapping object to construct ccdb object
 
 //Function to upload to ccdb for PbPb data -> only get events with centrality > 50%
-//void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFiredBothPlanesLB, THnSparse *hTotLB, long int startValidity, long int endValidity, int runNumber, string period) {
-void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFiredBothPlanesLB, THnSparse *hTotLB, long int startValidity, long int endValidity, int firstRun, int lastRun, string period, bool merge, int trackGoal) {
+//void plotMergedPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFiredBothPlanesLB, THnSparse *hTotLB, int firstRun, int lastRun, string period, bool merge, int trackGoal) {
+tuple<float, float, float, float, float, float, float, float, float, float, float, float> plotMergedPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFiredBothPlanesLB, 
+    THnSparse *hTotLB, int firstRun, int lastRun, string period, bool merge, int trackGoal) {
+    
     bool debug = false;
 
     //Variables used in the loop
@@ -84,25 +90,40 @@ void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hF
     cout << "Total counts BP LB "  << BPLBCountsProj->GetEntries() << endl;
     cout << "Total counts NBP LB "  << NBPLBCountsProj->GetEntries() << endl;
     cout << "Total counts Both LB "  << BothPlanesLBCountsProj->GetEntries() << endl; 
+
+    float effBP_before, effNBP_before, effBoth_before;
+    float errEffBP_before, errEffNBP_before, errEffBoth_before;
     
     //vector of struct, push back the struct populated with counts
-    for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
-        for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
-            for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
+    //for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
+        //for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+            //for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
                 
-                plane = o2::mid::detparams::getChamber(ide); //Get detection plane
+                //plane = o2::mid::detparams::getChamber(ide); //Get detection plane
 
-                LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
+                //LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
 
-                hTestTotCounts->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LB936));
-                hTestBP->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LB936));
-                hTestNBP->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LB936));
-                hTestBoth->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LB936));
+                float totCounts = totLBCountsProj->GetBinContent(LBnumber); //tot
+                float BPcounts = BPLBCountsProj->GetBinContent(LBnumber); //BP
+                float NBPcounts = NBPLBCountsProj->GetBinContent(LBnumber); //NBP
+                float Bothcounts = BothPlanesLBCountsProj->GetBinContent(LBnumber); //Both
 
-                counter++;
-            }
-        }
-    }
+                effBP_before = (BPcounts/totCounts)*100;
+                effNBP_before = (NBPcounts/totCounts)*100;
+                effBoth_before = (Bothcounts/totCounts)*100;
+                errEffBP_before = TMath::Sqrt(effBP_before*(100-effBP_before)/totCounts);
+                errEffNBP_before = TMath::Sqrt(effNBP_before*(100-effNBP_before)/totCounts);
+                errEffBoth_before = TMath::Sqrt(effBoth_before*(100-effBoth_before)/totCounts);
+
+                hTestTotCounts->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LBnumber));
+                hTestBP->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LBnumber));
+                hTestNBP->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LBnumber));
+                hTestBoth->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LBnumber));
+
+                //counter++;
+            //}
+        //}
+    //}
 
     counter = 0;
 
@@ -130,55 +151,50 @@ void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hF
     cout << "Total counts NBP LB "  << NBPLBCountsProj->GetEntries() << endl;
     cout << "Total counts Both LB "  << BothPlanesLBCountsProj->GetEntries() << endl; 
 
+    float effBP_after, effNBP_after, effBoth_after;
+    float errEffBP_after, errEffNBP_after, errEffBoth_after;
+
     //vector of struct, push back the struct populated with counts
-    for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
-        for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
-            for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
+    //for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
+    //   for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+    //       for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
                 
                 //Debug printout
-                if (debug) {
+                /*if (debug) {
                     cout << "det ID " << ide << " col " << icol << " line " << iline << " LB " << mapping.getBoardId(iline,icol,ide) << endl;
                     cout << "LB: " << mapping.getBoardId(iline,icol,ide) << "\t unique FEEID:" << o2::mid::detparams::makeUniqueFEEId(ide, icol, iline) << "\t";
-                }
+                }*/
                 
-                plane = o2::mid::detparams::getChamber(ide); //Get detection plane
+                //plane = o2::mid::detparams::getChamber(ide); //Get detection plane
 
-                LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
+                //LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
 
-                entry.deId =  uint8_t(ide);
-                entry.columnId = uint8_t(icol);
-                entry.lineId = uint8_t(iline);
+                totCounts = totLBCountsProj->GetBinContent(LBnumber); //tot
+                BPcounts = BPLBCountsProj->GetBinContent(LBnumber); //BP
+                NBPcounts = NBPLBCountsProj->GetBinContent(LBnumber); //NBP
+                Bothcounts = BothPlanesLBCountsProj->GetBinContent(LBnumber); //Both
 
-                //entry.counts[0] = hFiredBPLB->GetBinContent(LB936); //BP
-                //entry.counts[1] = hFiredNBPLB->GetBinContent(LB936); //NBP
-                //entry.counts[2] = hFiredBothPlanesLB->GetBinContent(LB936); //Both
-                //entry.counts[3] = hTotLB->GetBinContent(LB936); //Total
+                effBP_after = (BPcounts/totCounts)*100;
+                effNBP_after = (NBPcounts/totCounts)*100;
+                effBoth_after = (Bothcounts/totCounts)*100;
+                errEffBP_after = TMath::Sqrt(effBP_after*(100-effBP_after)/totCounts);
+                errEffNBP_after = TMath::Sqrt(effNBP_after*(100-effNBP_after)/totCounts);
+                errEffBoth_after = TMath::Sqrt(effBoth_after*(100-effBoth_after)/totCounts);
 
-                entry.counts[0] = BPLBCountsProj->GetBinContent(LB936); //BP
-                entry.counts[1] = NBPLBCountsProj->GetBinContent(LB936); //NBP
-                entry.counts[2] = BothPlanesLBCountsProj->GetBinContent(LB936); //Both
-                entry.counts[3] = totLBCountsProj->GetBinContent(LB936); //Total
+                hTestTotCountsAfter->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LBnumber));
+                hTestBPAfter->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LBnumber));
+                hTestNBPAfter->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LBnumber));
+                hTestBothAfter->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LBnumber));
 
-                counterVector.push_back(entry);
+                //counter++;
 
-                hTestTotCountsAfter->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LB936));
-                hTestBPAfter->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LB936));
-                hTestNBPAfter->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LB936));
-                hTestBothAfter->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LB936));
-
-                counter++;
-
-                //cout << LB936 << "\t" << (BothPlanesLBCountsProj->GetBinContent(LB936)/totLBCountsProj->GetBinContent(LB936))*100 << "\t" << 
-                //(BPLBCountsProj->GetBinContent(LB936)/totLBCountsProj->GetBinContent(LB936))*100 << "\t" << 
-                //(NBPLBCountsProj->GetBinContent(LB936)/totLBCountsProj->GetBinContent(LB936))*100 << endl;
-                
                 //Debug printout
-                if (debug) {
-                    cout << LB936 << "\t both: " << BothPlanesLBCountsProj->GetBinContent(LB936) << "\t tot: " << totLBCountsProj->GetBinContent(LB936) << endl;
-                } 
-            }
-        }
-    }
+                //if (debug) {
+                //    cout << LB936 << "\t both: " << BothPlanesLBCountsProj->GetBinContent(LB936) << "\t tot: " << totLBCountsProj->GetBinContent(LB936) << endl;
+                //} 
+        //    }
+      //  }
+    //}
 
     //Delete objects here to avoid saturating RAM
     delete totLBCountsProj;
@@ -186,7 +202,6 @@ void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hF
     delete BPLBCountsProj;
     delete NBPLBCountsProj;
 
-    TFile *fOut;
     TFile *fTest;
 
     if (merge) {
@@ -197,7 +212,6 @@ void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hF
             fs::create_directories(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/"+to_string(trackGoal)).c_str());
         }
 
-        fOut = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/ccdb/merged/" +to_string(trackGoal) + "/o2-mid-ChEffCounter_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
         fTest = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/" + to_string(trackGoal) + "/details_run_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
 
     }
@@ -209,11 +223,8 @@ void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hF
             fs::create_directories(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/"+to_string(trackGoal)).c_str());
         }
 
-        fOut = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/ccdb/merged/0/o2-mid-ChEffCounter_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
         fTest = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/" + to_string(trackGoal) + "details_run_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
     }
-    fOut->WriteObjectAny(&counterVector, "std::vector<o2::mid::ChEffCounter>","ccdb-object");
-    fOut->Close();
 
     fTest->cd();
     hTestTotCounts->Write("tot");
@@ -225,14 +236,16 @@ void createCCDBPbPb(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hF
     hTestNBPAfter->Write("NBPAfter");
     hTestBothAfter->Write("BothAfter");
     fTest->Close();
+
+    return  make_tuple(effBP_before, errEffBP_before, effNBP_before, errEffNBP_before, effBoth_before, errEffBoth_before,
+                    effBP_after, errEffBP_after, effNBP_after, errEffNBP_after, effBoth_after, errEffBoth_after);
 } //end of createCCDB for PbPb
 
 //////////
 
 //Function to upload to ccdb
-//void createCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB, TH1F *hTotLB, long int startValidity, long int endValidity, int runNumber) {
-//void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFiredBothPlanesLB, THnSparse *hTotLB, long int startValidity, long int endValidity, int runNumber, string period) {
-void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFiredBothPlanesLB, THnSparse *hTotLB, long int startValidity, long int endValidity, int firstRun, int lastRun, string period, bool merge, int trackGoal) {
+tuple<float, float, float, float, float, float, float, float, float, float, float, float> plotMerged(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFiredBothPlanesLB,
+    THnSparse *hTotLB, int firstRun, int lastRun, string period, bool merge, int trackGoal) {
 
     bool debug = false;
 
@@ -269,23 +282,38 @@ void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFired
     cout << "Total counts NBP LB "  << NBPLBCountsProj->GetEntries() << endl;
     cout << "Total counts Both LB "  << BothPlanesLBCountsProj->GetEntries() << endl; 
 
+    float effBP_before, effNBP_before, effBoth_before;
+    float errEffBP_before, errEffNBP_before, errEffBoth_before;
+
     //vector of struct, push back the struct populated with counts
-    for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
-       for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
-           for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
-                plane = o2::mid::detparams::getChamber(ide); //Get detection plane
+    //for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
+    //   for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+    //       for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
+    //            plane = o2::mid::detparams::getChamber(ide); //Get detection plane
 
-                LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
+    //            LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
 
-                hTestTotCounts->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LB936));
-                hTestBP->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LB936));
-                hTestNBP->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LB936));
-                hTestBoth->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LB936));
+                float totCounts = totLBCountsProj->GetBinContent(LBnumber); //tot
+                float BPcounts = BPLBCountsProj->GetBinContent(LBnumber); //BP
+                float NBPcounts = NBPLBCountsProj->GetBinContent(LBnumber); //NBP
+                float Bothcounts = BothPlanesLBCountsProj->GetBinContent(LBnumber); //Both
 
-                counter++;
-            }
-        }
-    }
+                effBP_before = (BPcounts/totCounts)*100;
+                effNBP_before = (NBPcounts/totCounts)*100;
+                effBoth_before = (Bothcounts/totCounts)*100;
+                errEffBP_before = TMath::Sqrt(effBP_before*(100-effBP_before)/totCounts);
+                errEffNBP_before = TMath::Sqrt(effNBP_before*(100-effNBP_before)/totCounts);
+                errEffBoth_before = TMath::Sqrt(effBoth_before*(100-effBoth_before)/totCounts);
+
+                hTestTotCounts->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LBnumber));
+                hTestBP->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LBnumber));
+                hTestNBP->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LBnumber));
+                hTestBoth->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LBnumber));
+
+                //counter++;
+    //        }
+    //    }
+    //}
 
     counter = 0;
 
@@ -313,51 +341,50 @@ void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFired
     cout << "Total counts NBP LB "  << NBPLBCountsProj->GetEntries() << endl;
     cout << "Total counts Both LB "  << BothPlanesLBCountsProj->GetEntries() << endl;
 
+    float effBP_after, effNBP_after, effBoth_after;
+    float errEffBP_after, errEffNBP_after, errEffBoth_after;
+
     //vector of struct, push back the struct populated with counts
-    for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
-        for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
-            for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
+    //for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
+    //    for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+    //        for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
                 
                 //Debug printout
-                if (debug) {
+                /*if (debug) {
                     cout << "det ID " << ide << " col " << icol << " line " << iline << " LB " << mapping.getBoardId(iline,icol,ide);
                     cout << "LB: " << mapping.getBoardId(iline,icol,ide) << "\t unique FEEID:" << o2::mid::detparams::makeUniqueFEEId(ide, icol, iline) << "\t";
-                }
+                }*/
                 
-                plane = o2::mid::detparams::getChamber(ide); //Get detection plane
+                //plane = o2::mid::detparams::getChamber(ide); //Get detection plane
 
-                LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
+                //LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
 
-                entry.deId =  uint8_t(ide);
-                entry.columnId = uint8_t(icol);
-                entry.lineId = uint8_t(iline);
+                totCounts = totLBCountsProj->GetBinContent(LBnumber); //tot
+                BPcounts = BPLBCountsProj->GetBinContent(LBnumber); //BP
+                NBPcounts = NBPLBCountsProj->GetBinContent(LBnumber); //NBP
+                Bothcounts = BothPlanesLBCountsProj->GetBinContent(LBnumber); //Both
 
-                //entry.counts[0] = hFiredBPLB->GetBinContent(LB936); //BP
-                //entry.counts[1] = hFiredNBPLB->GetBinContent(LB936); //NBP
-                //entry.counts[2] = hFiredBothPlanesLB->GetBinContent(LB936); //Both
-                //entry.counts[3] = hTotLB->GetBinContent(LB936); //Total
+                effBP_after = (BPcounts/totCounts)*100;
+                effNBP_after = (NBPcounts/totCounts)*100;
+                effBoth_after = (Bothcounts/totCounts)*100;
+                errEffBP_after = TMath::Sqrt(effBP_after*(100-effBP_after)/totCounts);
+                errEffNBP_after = TMath::Sqrt(effNBP_after*(100-effNBP_after)/totCounts);
+                errEffBoth_after = TMath::Sqrt(effBoth_after*(100-effBoth_after)/totCounts);
 
-                entry.counts[0] = BPLBCountsProj->GetBinContent(LB936); //BP
-                entry.counts[1] = NBPLBCountsProj->GetBinContent(LB936); //NBP
-                entry.counts[2] = BothPlanesLBCountsProj->GetBinContent(LB936); //Both
-                entry.counts[3] = totLBCountsProj->GetBinContent(LB936); //Total
+                hTestTotCountsAfter->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LBnumber));
+                hTestBPAfter->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LBnumber));
+                hTestNBPAfter->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LBnumber));
+                hTestBothAfter->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LBnumber));
 
-                counterVector.push_back(entry);
-
-                hTestTotCountsAfter->SetBinContent(counter+1,totLBCountsProj->GetBinContent(LB936));
-                hTestBPAfter->SetBinContent(counter+1,BPLBCountsProj->GetBinContent(LB936));
-                hTestNBPAfter->SetBinContent(counter+1,NBPLBCountsProj->GetBinContent(LB936));
-                hTestBothAfter->SetBinContent(counter+1,BothPlanesLBCountsProj->GetBinContent(LB936));
-
-                counter++;
+                //counter++;
                 
                 //Debug printout
-                if (debug) {
+                /*if (debug) {
                     cout << LB936 << "\t both: " << hFiredBothPlanesLB->GetBinContent(LB936) << "\t tot: " << hTotLB->GetBinContent(LB936) << endl;
-                } 
-            }
-        }
-    }
+                }*/
+    //        }
+    //    }
+    //}
 
     //Delete objects here to avoid saturating RAM
     delete totLBCountsProj;
@@ -366,7 +393,6 @@ void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFired
     delete NBPLBCountsProj;
 
     cout << "Opening file for CCDB" << endl;
-    TFile *fOut;
     TFile *fTest;
     
     if (merge) {
@@ -378,7 +404,6 @@ void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFired
             fs::create_directories(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/"+to_string(trackGoal)).c_str());
         }
 
-        fOut = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/ccdb/merged/" + to_string(trackGoal) + "/o2-mid-ChEffCounter_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
         fTest = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/" +to_string(trackGoal) + "/details_run_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
     }
 
@@ -391,15 +416,10 @@ void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFired
             fs::create_directories(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/"+to_string(trackGoal)).c_str());
         }
 
-        fOut = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/ccdb/merged/0/o2-mid-ChEffCounter_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
         fTest = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/detailedOutput/" + to_string(trackGoal) + "/details_run_"+to_string(firstRun)+"_"+to_string(lastRun)+".root").c_str(),"RECREATE");
 
     }
-    fOut->WriteObjectAny(&counterVector, "std::vector<o2::mid::ChEffCounter>","ccdb-object");
-    fOut->Close();
 
-    cout << "Opening file for test purposes" << endl;
-    
     fTest->cd();
     hTestTotCounts->Write("tot");
     hTestBP->Write("BP");
@@ -411,7 +431,9 @@ void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFired
     hTestBothAfter->Write("BothAfter");
     fTest->Close();
 
-    cout << "Closing test file" << endl;    
+    return  make_tuple(effBP_before, errEffBP_before, effNBP_before, errEffNBP_before, effBoth_before, errEffBoth_before,
+                    effBP_after, errEffBP_after, effNBP_after, errEffNBP_after, effBoth_after, errEffBoth_after);
+
 } //end of createCCDB
 
 
@@ -421,12 +443,17 @@ void createCCDB(THnSparse *hFiredBPLB, THnSparse *hFiredNBPLB, THnSparse *hFired
 //               //
 //---------------//
 
-void produceObjects() { //Main function
+void plotEfficiencyMerged() { //Main function
 
     cout << "ptMinCut: " << ptMinCut << endl;
 
     float effBothLB = 0, effBPLB = 0, effNBPLB =0;
     float errEffBothLB = 0, errEffBPLB = 0, errEffNBPLB = 0;
+
+    vector<double> v_effBP_before, v_effNBP_before, v_effBoth_before, v_errEffBP_before, v_errEffNBP_before, v_errEffBoth_before;
+    vector<double> v_effBP_after, v_effNBP_after, v_effBoth_after, v_errEffBP_after, v_errEffNBP_after, v_errEffBoth_after;
+    vector<double> vRun_average;
+    vector<double> vRunLow, vRunHigh;
 
     int tracks = 0, cumulativeTracks = 0;
 
@@ -454,8 +481,8 @@ void produceObjects() { //Main function
     bool createByRunPbPb = false;
 
     //Merge more files until desired number of tracks is reached (if merge == true)
-    bool merge = false;
-    int trackGoal = 3e+8;
+    bool merge = true;
+    int trackGoal = 1e+6;
 
     //General path to add flexibility to the code + period name
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
@@ -463,9 +490,9 @@ void produceObjects() { //Main function
     //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
     //string period = "LHC22o_pass7_minBias";
     //string period = "LHC22_pass7_skimmed";
-    //string period = "LHC23_pass4_skimmed";
+    string period = "LHC23_pass4_skimmed";
     //string period = "LHC23_PbPb_pass4";
-    string period = "LHC24_PbPb_pass2";
+    //string period = "LHC24_PbPb_pass2";
     //string period = "LHC24_pass1_skimmed";
     //string period = "LHC25ad_pass2"; //pO
     //string period = "LHC25ae_pass2"; //O-O
@@ -670,13 +697,84 @@ void produceObjects() { //Main function
                 THnSparse *hSparseCentFiredBPPerLBmerged = (THnSparse*)dMerged->Get("hSparseCentFiredBPperBoard");
                 THnSparse *hSparseCentFiredNBPPerLBmerged = (THnSparse*)dMerged->Get("hSparseCentFiredNBPperBoard");
 
+                float effBP_before, effNBP_before, effBoth_before, errEffBP_before, errEffNBP_before, errEffBoth_before;
+                float effBP_after, effNBP_after, effBoth_after, errEffBP_after, errEffNBP_after, errEffBoth_after;
+
+                tuple<float,float,float,float,float,float,float,float,float,float,float,float> efficiency;
+
                 if (createByRun) {
-                    createCCDB(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,startTime,endTime,first,last,period,merge,trackGoal);
+                    //plotMerged(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,first,last,period,merge,trackGoal);
+                    efficiency = plotMerged(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,first,last,period,merge,trackGoal);
+                    
+                    effBP_before = get<0>(efficiency);
+                    errEffBP_before = get<1>(efficiency);
+                    effNBP_before = get<2>(efficiency);
+                    errEffNBP_before = get<3>(efficiency);
+                    effBoth_before = get<4>(efficiency);
+                    errEffBoth_before = get<5>(efficiency);
+                    effBP_after = get<6>(efficiency);
+                    errEffBP_after = get<7>(efficiency);
+                    effNBP_after = get<8>(efficiency);
+                    errEffNBP_after = get<9>(efficiency);
+                    effBoth_after = get<10>(efficiency);
+                    errEffBoth_after = get<11>(efficiency);
+
+                    v_effBP_before.push_back(effBP_before);
+                    v_effNBP_before.push_back(effNBP_before);
+                    v_effBoth_before.push_back(effBoth_before);
+                    v_errEffBP_before.push_back(errEffBP_before);
+                    v_errEffNBP_before.push_back(errEffNBP_before);
+                    v_errEffBoth_before.push_back(errEffBoth_before);
+
+                    v_effBP_after.push_back(effBP_after);
+                    v_effNBP_after.push_back(effNBP_after);
+                    v_effBoth_after.push_back(effBoth_after);
+                    v_errEffBP_after.push_back(errEffBP_after);
+                    v_errEffNBP_after.push_back(errEffNBP_after);
+                    v_errEffBoth_after.push_back(errEffBoth_after);
+                    
+                    vRun_average.push_back(mergeRun/avgCalculation);
+                    vRunLow.push_back((mergeRun/avgCalculation) - first);
+                    vRunHigh.push_back(last - (mergeRun/avgCalculation));
+                    cout << "first " << first << " last " << last << " avg " << mergeRun/avgCalculation << endl;
                 }
             
                 //Create .root objects to upload them to CCDB for PbPb
                 if (createByRunPbPb) {            
-                    createCCDBPbPb(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,startTime,endTime,first,last,period,merge,trackGoal);
+                    //plotMergedPbPb(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,first,last,period,merge,trackGoal);
+                    efficiency = plotMergedPbPb(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,first,last,period,merge,trackGoal);
+                    
+                    effBP_before = get<0>(efficiency);
+                    errEffBP_before = get<1>(efficiency);
+                    effNBP_before = get<2>(efficiency);
+                    errEffNBP_before = get<3>(efficiency);
+                    effBoth_before = get<4>(efficiency);
+                    errEffBoth_before = get<5>(efficiency);
+                    effBP_after = get<6>(efficiency);
+                    errEffBP_after = get<7>(efficiency);
+                    effNBP_after = get<8>(efficiency);
+                    errEffNBP_after = get<9>(efficiency);
+                    effBoth_after = get<10>(efficiency);
+                    errEffBoth_after = get<11>(efficiency);
+
+                    v_effBP_before.push_back(effBP_before);
+                    v_effNBP_before.push_back(effNBP_before);
+                    v_effBoth_before.push_back(effBoth_before);
+                    v_errEffBP_before.push_back(errEffBP_before);
+                    v_errEffNBP_before.push_back(errEffNBP_before);
+                    v_errEffBoth_before.push_back(errEffBoth_before);
+
+                    v_effBP_after.push_back(effBP_after);
+                    v_effNBP_after.push_back(effNBP_after);
+                    v_effBoth_after.push_back(effBoth_after);
+                    v_errEffBP_after.push_back(errEffBP_after);
+                    v_errEffNBP_after.push_back(errEffNBP_after);
+                    v_errEffBoth_after.push_back(errEffBoth_after);
+                    
+                    vRun_average.push_back(mergeRun/avgCalculation);
+                    vRunLow.push_back((mergeRun/avgCalculation) - first);
+                    vRunHigh.push_back(last - (mergeRun/avgCalculation));
+                    cout << "first " << first << " last " << last << " avg " << mergeRun/avgCalculation << endl;
                 }
                 //calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
                 //vErrEffBPLBmerged, vErrEffNBPLBmerged,vErrEffBothLBmerged,vErrEffBPLB_merged,vErrEffNBPLB_merged,vErrEffBothLB_merged,first,last);
@@ -761,17 +859,85 @@ void produceObjects() { //Main function
                 THnSparse *hSparseCentFiredBPPerLBmerged = (THnSparse*)dMerged->Get("hSparseCentFiredBPperBoard");
                 THnSparse *hSparseCentFiredNBPPerLBmerged = (THnSparse*)dMerged->Get("hSparseCentFiredNBPperBoard");
 
+                float effBP_before, effNBP_before, effBoth_before, errEffBP_before, errEffNBP_before, errEffBoth_before;
+                float effBP_after, effNBP_after, effBoth_after, errEffBP_after, errEffNBP_after, errEffBoth_after;
+
+                tuple<float,float,float,float,float,float,float,float,float,float,float,float> efficiency;
+
                 if (createByRun) {
                     //createCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,vStart.at(iRun),vEnd.at(iRun),vRun.at(iRun));
-                    createCCDB(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,startTime,endTime,first,last,period,merge,trackGoal);
+                    efficiency = plotMerged(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,first,last,period,merge,trackGoal);
+                    
+                    effBP_before = get<0>(efficiency);
+                    errEffBP_before = get<1>(efficiency);
+                    effNBP_before = get<2>(efficiency);
+                    errEffNBP_before = get<3>(efficiency);
+                    effBoth_before = get<4>(efficiency);
+                    errEffBoth_before = get<5>(efficiency);
+                    effBP_after = get<6>(efficiency);
+                    errEffBP_after = get<7>(efficiency);
+                    effNBP_after = get<8>(efficiency);
+                    errEffNBP_after = get<9>(efficiency);
+                    effBoth_after = get<10>(efficiency);
+                    errEffBoth_after = get<11>(efficiency);
+
+                    v_effBP_before.push_back(effBP_before);
+                    v_effNBP_before.push_back(effNBP_before);
+                    v_effBoth_before.push_back(effBoth_before);
+                    v_errEffBP_before.push_back(errEffBP_before);
+                    v_errEffNBP_before.push_back(errEffNBP_before);
+                    v_errEffBoth_before.push_back(errEffBoth_before);
+
+                    v_effBP_after.push_back(effBP_after);
+                    v_effNBP_after.push_back(effNBP_after);
+                    v_effBoth_after.push_back(effBoth_after);
+                    v_errEffBP_after.push_back(errEffBP_after);
+                    v_errEffNBP_after.push_back(errEffNBP_after);
+                    v_errEffBoth_after.push_back(errEffBoth_after);
+                    
+                    vRun_average.push_back(mergeRun/avgCalculation);
+                    vRunLow.push_back((mergeRun/avgCalculation) - first);
+                    vRunHigh.push_back(last - (mergeRun/avgCalculation));
+                    cout << "first " << first << " last " << last << " avg " << mergeRun/avgCalculation << endl;
                 }
             
                 //Create .root objects to upload them to CCDB for PbPb
                 if (createByRunPbPb) {            
-                    createCCDBPbPb(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,startTime,endTime,first,last,period,merge,trackGoal);
+                    efficiency = plotMergedPbPb(hSparseCentFiredBPPerLBmerged,hSparseCentFiredNBPPerLBmerged,hSparseCentFiredBothPerLBmerged,hSparseCentFiredTotPerLBmerged,first,last,period,merge,trackGoal);
+                    
+                    effBP_before = get<0>(efficiency);
+                    errEffBP_before = get<1>(efficiency);
+                    effNBP_before = get<2>(efficiency);
+                    errEffNBP_before = get<3>(efficiency);
+                    effBoth_before = get<4>(efficiency);
+                    errEffBoth_before = get<5>(efficiency);
+                    effBP_after = get<6>(efficiency);
+                    errEffBP_after = get<7>(efficiency);
+                    effNBP_after = get<8>(efficiency);
+                    errEffNBP_after = get<9>(efficiency);
+                    effBoth_after = get<10>(efficiency);
+                    errEffBoth_after = get<11>(efficiency);
+
+                    v_effBP_before.push_back(effBP_before);
+                    v_effNBP_before.push_back(effNBP_before);
+                    v_effBoth_before.push_back(effBoth_before);
+                    v_errEffBP_before.push_back(errEffBP_before);
+                    v_errEffNBP_before.push_back(errEffNBP_before);
+                    v_errEffBoth_before.push_back(errEffBoth_before);
+
+                    v_effBP_after.push_back(effBP_after);
+                    v_effNBP_after.push_back(effNBP_after);
+                    v_effBoth_after.push_back(effBoth_after);
+                    v_errEffBP_after.push_back(errEffBP_after);
+                    v_errEffNBP_after.push_back(errEffNBP_after);
+                    v_errEffBoth_after.push_back(errEffBoth_after);
+                    
+                    vRun_average.push_back(mergeRun/avgCalculation);
+                    vRunLow.push_back((mergeRun/avgCalculation) - first);
+                    vRunHigh.push_back(last - (mergeRun/avgCalculation));
+                    cout << "first " << first << " last " << last << " avg " << mergeRun/avgCalculation << endl;
                 }
-                //calculateEfficiencyByRun(mergeFiles,vEffBPLBmerged,vEffNBPLBmerged,vEffBothLBmerged,vEffBPLB_merged,vEffNBPLB_merged,vEffBothLB_merged,
-                //vErrEffBPLBmerged, vErrEffNBPLBmerged, vErrEffBothLBmerged,vErrEffBPLB_merged, vErrEffNBPLB_merged, vErrEffBothLB_merged,first,last);
+
                 mergeRun = 0;
                 avgCalculation = 0;
 
@@ -788,15 +954,85 @@ void produceObjects() { //Main function
         
         else { //Merge is disabled
             cout << "Merging of tracks is not active" << endl;
+            float effBP_before, effNBP_before, effBoth_before, errEffBP_before, errEffNBP_before, errEffBoth_before;
+            float effBP_after, effNBP_after, effBoth_after, errEffBP_after, errEffNBP_after, errEffBoth_after;
+
+            tuple<float,float,float,float,float,float,float,float,float,float,float,float> efficiency;
             //Create .root objects to upload them to CCDB
             if (createByRun) {
-                createCCDB(hSparseCentFiredBPPerLB,hSparseCentFiredNBPPerLB,hSparseCentFiredBothPerLB,hSparseCentFiredTotPerLB,vStart.at(iRun),vEnd.at(iRun),vRun.at(iRun),vRun.at(iRun),period,merge,trackGoal);
+                //plotMerged(hSparseCentFiredBPPerLB,hSparseCentFiredNBPPerLB,hSparseCentFiredBothPerLB,hSparseCentFiredTotPerLB,vRun.at(iRun),vRun.at(iRun),period,merge,trackGoal);
+                efficiency = plotMergedPbPb(hSparseCentFiredBPPerLB,hSparseCentFiredNBPPerLB,hSparseCentFiredBothPerLB,hSparseCentFiredTotPerLB,vRun.at(iRun),vRun.at(iRun),period,merge,trackGoal);
+                    
+                effBP_before = get<0>(efficiency);
+                errEffBP_before = get<1>(efficiency);
+                effNBP_before = get<2>(efficiency);
+                errEffNBP_before = get<3>(efficiency);
+                effBoth_before = get<4>(efficiency);
+                errEffBoth_before = get<5>(efficiency);
+                effBP_after = get<6>(efficiency);
+                errEffBP_after = get<7>(efficiency);
+                effNBP_after = get<8>(efficiency);
+                errEffNBP_after = get<9>(efficiency);
+                effBoth_after = get<10>(efficiency);
+                errEffBoth_after = get<11>(efficiency);
 
+                v_effBP_before.push_back(effBP_before);
+                v_effNBP_before.push_back(effNBP_before);
+                v_effBoth_before.push_back(effBoth_before);
+                v_errEffBP_before.push_back(errEffBP_before);
+                v_errEffNBP_before.push_back(errEffNBP_before);
+                v_errEffBoth_before.push_back(errEffBoth_before);
+
+                v_effBP_after.push_back(effBP_after);
+                v_effNBP_after.push_back(effNBP_after);
+                v_effBoth_after.push_back(effBoth_after);
+                v_errEffBP_after.push_back(errEffBP_after);
+                v_errEffNBP_after.push_back(errEffNBP_after);
+                v_errEffBoth_after.push_back(errEffBoth_after);
+                
+                vRun_average.push_back(vRun.at(iRun));
+                vRunLow.push_back(0);
+                vRunHigh.push_back(0);
+                cout << "first " << vRun.at(iRun) << " last " << vRun.at(iRun) << " avg " << vRun.at(iRun) << endl;
+            
             }
             
             //Create .root objects to upload them to CCDB for PbPb
             if (createByRunPbPb) {            
-                createCCDBPbPb(hSparseCentFiredBPPerLB,hSparseCentFiredNBPPerLB,hSparseCentFiredBothPerLB,hSparseCentFiredTotPerLB,vStart.at(iRun),vEnd.at(iRun),vRun.at(iRun),vRun.at(iRun),period,merge,trackGoal);
+                //plotMergedPbPb(hSparseCentFiredBPPerLB,hSparseCentFiredNBPPerLB,hSparseCentFiredBothPerLB,hSparseCentFiredTotPerLB,vRun.at(iRun),vRun.at(iRun),period,merge,trackGoal);
+                efficiency = plotMergedPbPb(hSparseCentFiredBPPerLB,hSparseCentFiredNBPPerLB,hSparseCentFiredBothPerLB,hSparseCentFiredTotPerLB,vRun.at(iRun),vRun.at(iRun),period,merge,trackGoal);
+                    
+                    effBP_before = get<0>(efficiency);
+                    errEffBP_before = get<1>(efficiency);
+                    effNBP_before = get<2>(efficiency);
+                    errEffNBP_before = get<3>(efficiency);
+                    effBoth_before = get<4>(efficiency);
+                    errEffBoth_before = get<5>(efficiency);
+                    effBP_after = get<6>(efficiency);
+                    errEffBP_after = get<7>(efficiency);
+                    effNBP_after = get<8>(efficiency);
+                    errEffNBP_after = get<9>(efficiency);
+                    effBoth_after = get<10>(efficiency);
+                    errEffBoth_after = get<11>(efficiency);
+
+                    v_effBP_before.push_back(effBP_before);
+                    v_effNBP_before.push_back(effNBP_before);
+                    v_effBoth_before.push_back(effBoth_before);
+                    v_errEffBP_before.push_back(errEffBP_before);
+                    v_errEffNBP_before.push_back(errEffNBP_before);
+                    v_errEffBoth_before.push_back(errEffBoth_before);
+
+                    v_effBP_after.push_back(effBP_after);
+                    v_effNBP_after.push_back(effNBP_after);
+                    v_effBoth_after.push_back(effBoth_after);
+                    v_errEffBP_after.push_back(errEffBP_after);
+                    v_errEffNBP_after.push_back(errEffNBP_after);
+                    v_errEffBoth_after.push_back(errEffBoth_after);
+                    
+                    vRun_average.push_back(vRun.at(iRun));
+                    vRunLow.push_back(0);
+                    vRunHigh.push_back(0);
+                    cout << "first " << vRun.at(iRun) << " last " << vRun.at(iRun) << " avg " << vRun.at(iRun) << endl;
             }
 
             delete hSparseCentFiredBPPerLB;
@@ -813,7 +1049,123 @@ void produceObjects() { //Main function
         fRun->Close();
         delete fRun;
     } //End of loop on all runs
+
+    TGraphAsymmErrors *gBPEff_before = new TGraphAsymmErrors(vRun_average.size(),&vRun_average[0],&v_effBP_before[0],&vRunLow[0],&vRunHigh[0],&v_errEffBP_before[0],&v_errEffBP_before[0]);
+    gBPEff_before->SetMarkerSize(1.4);
+    gBPEff_before->SetMarkerColor(kBlack);
+
+    TGraphAsymmErrors *gBPEff_after = new TGraphAsymmErrors(vRun_average.size(),&vRun_average[0],&v_effBP_after[0],&vRunLow[0],&vRunHigh[0],&v_errEffBP_after[0],&v_errEffBP_after[0]);
+    gBPEff_after->SetMarkerSize(1.4);
+    gBPEff_after->SetMarkerColor(kRed);
+
+    TGraphAsymmErrors *gNBPEff_before = new TGraphAsymmErrors(vRun_average.size(),&vRun_average[0],&v_effNBP_before[0],&vRunLow[0],&vRunHigh[0],&v_errEffNBP_before[0],&v_errEffNBP_before[0]);
+    gNBPEff_before->SetMarkerSize(1.4);
+    gNBPEff_before->SetMarkerColor(kBlack);
+
+    TGraphAsymmErrors *gNBPEff_after = new TGraphAsymmErrors(vRun_average.size(),&vRun_average[0],&v_effNBP_after[0],&vRunLow[0],&vRunHigh[0],&v_errEffNBP_after[0],&v_errEffNBP_after[0]);
+    gNBPEff_after->SetMarkerSize(1.4);
+    gNBPEff_after->SetMarkerColor(kRed);
+
+    TGraphAsymmErrors *gBothEff_before = new TGraphAsymmErrors(vRun_average.size(),&vRun_average[0],&v_effBoth_before[0],&vRunLow[0],&vRunHigh[0],&v_errEffBoth_before[0],&v_errEffBoth_before[0]);
+    gBothEff_before->SetMarkerSize(1.4);
+    gBothEff_before->SetMarkerColor(kBlack);
+
+    TGraphAsymmErrors *gBothEff_after = new TGraphAsymmErrors(vRun_average.size(),&vRun_average[0],&v_effBoth_after[0],&vRunLow[0],&vRunHigh[0],&v_errEffBoth_after[0],&v_errEffBoth_after[0]);
+    gBothEff_after->SetMarkerSize(1.4);
+    gBothEff_after->SetMarkerColor(kRed);
+
+    if (merge) {
+        gBPEff_before->SetMarkerStyle(8);
+        gBPEff_after->SetMarkerStyle(8);
+        gNBPEff_before->SetMarkerStyle(8);
+        gNBPEff_after->SetMarkerStyle(8);
+        gBothEff_before->SetMarkerStyle(8);
+        gBothEff_after->SetMarkerStyle(8);
+    }
+
+    else {
+        gBPEff_before->SetMarkerStyle(22);
+        gBPEff_after->SetMarkerStyle(22);
+        gNBPEff_before->SetMarkerStyle(22);
+        gNBPEff_after->SetMarkerStyle(22);
+        gBothEff_before->SetMarkerStyle(22);
+        gBothEff_after->SetMarkerStyle(22);
+    }
+
+    TMultiGraph *mBP = new TMultiGraph();
+    mBP->Add(gBPEff_before);
+    mBP->Add(gBPEff_after);
     
+    TMultiGraph *mNBP = new TMultiGraph();
+    mNBP->Add(gNBPEff_before);
+    mNBP->Add(gNBPEff_after);
+
+    TMultiGraph *mBoth = new TMultiGraph();
+    mBoth->Add(gBothEff_before);
+    mBoth->Add(gBothEff_after);
+
     hRun.close();
     //hDate.close();
+
+    TCanvas *cEff_BP = new TCanvas();
+    cEff_BP->cd();
+    cEff_BP->SetGridx();
+    cEff_BP->SetGridy();
+    mBP->Draw("AP");
+    mBP->GetXaxis()->SetNoExponent(1);
+    mBP->GetXaxis()->SetTitle("Run #");
+    mBP->GetXaxis()->CenterTitle(true);
+    mBP->GetYaxis()->SetTitle("Efficiency [%]");
+    mBP->GetYaxis()->CenterTitle(true);
+    mBP->GetXaxis()->SetLabelFont(62); 
+    mBP->GetYaxis()->SetLabelFont(62); 
+    mBP->GetYaxis()->SetTitleFont(62); 
+    mBP->GetYaxis()->SetTitleFont(62); 
+
+    TCanvas *cEff_NBP = new TCanvas();
+    cEff_NBP->cd();
+    cEff_NBP->SetGridx();
+    cEff_NBP->SetGridy();
+    mNBP->Draw("AP");
+    mNBP->GetXaxis()->SetNoExponent(1);
+    mNBP->GetXaxis()->SetTitle("Run #");
+    mNBP->GetXaxis()->CenterTitle(true);
+    mNBP->GetYaxis()->SetTitle("Efficiency [%]");
+    mNBP->GetYaxis()->CenterTitle(true);
+    mNBP->GetXaxis()->SetLabelFont(62); 
+    mNBP->GetYaxis()->SetLabelFont(62); 
+    mNBP->GetYaxis()->SetTitleFont(62); 
+    mNBP->GetYaxis()->SetTitleFont(62);
+
+    TCanvas *cEff_Both = new TCanvas();
+    cEff_Both->cd();
+    cEff_Both->SetGridx();
+    cEff_Both->SetGridy();
+    mBoth->Draw("AP");
+    mBoth->GetXaxis()->SetNoExponent(1);
+    mBoth->GetXaxis()->SetTitle("Run #");
+    mBoth->GetXaxis()->CenterTitle(true);
+    mBoth->GetYaxis()->SetTitle("Efficiency [%]");
+    mBoth->GetYaxis()->CenterTitle(true);
+    mBoth->GetXaxis()->SetLabelFont(62); 
+    mBoth->GetYaxis()->SetLabelFont(62); 
+    mBoth->GetYaxis()->SetTitleFont(62); 
+    mBoth->GetYaxis()->SetTitleFont(62);
+
+    TFile *fSummary;
+
+    if (merge) {
+        fSummary = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outFile_" + period + "_merged.root").c_str(),"RECREATE");
+    }
+    else {
+        fSummary = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outFile_" + period + ".root").c_str(),"RECREATE");
+    }
+
+    fSummary->cd();
+    cEff_BP->Write("BP");
+    cEff_NBP->Write("NBP");
+    cEff_Both->Write("Both");
+
+    fSummary->Close();
+    //gBPEff_after->Draw("SAME")
 }

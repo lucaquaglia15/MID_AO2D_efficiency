@@ -33,8 +33,8 @@
 using namespace std;
 
 bool debug = false;
-//const int trackGoal = 8e+6; //Normal value
-long int trackGoal = 8e+11;//To test, it goes faster since this number of tracks is never reached
+const int trackGoal = 8e+6; //Normal value
+//long int trackGoal = 8e+11;//To test, it goes faster since this number of tracks is never reached
 long int tracks = 0;
 long int cumulativeTracks = 0;
 int nBinsPlane = 4; //Number of planes
@@ -45,10 +45,11 @@ o2::ccdb::CcdbApi api; //CCDB API as global object
 o2::mid::Mapping mapping; //MID mapping object to construct ccdb object
 
 vector<int> markerStyle{50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,70,71,72,73,74,75};
-vector<TGraphErrors*> gEffPerRun;
+vector<int> markerColor{1,2,3,4,5,6,7,8,9};
+vector<TGraphErrors*> gEffPerRunBP, gEffPerRunNBP;
 
 //Function to upload to ccdb
-void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB, TH1F *hTotLB, long int startValidity, long int endValidity) {
+void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB, TH1F *hTotLB, long int startValidity, long int endValidity, int runNumber) {
 
     //api.init("http://alice-ccdb.cern.ch"); //Open connection to ALICE CCDB
     //api.init("http://ccdb-test.cern.ch:8080"); //Open connection to test CCDB
@@ -98,7 +99,15 @@ void uploadToCCDB(TH1F *hFiredBPLB, TH1F *hFiredNBPLB, TH1F *hFiredBothPlanesLB,
     std::map<std::string, std::string> md; //Metada map
     //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency", md, startValidity, endValidity); //Upload in CCDB
     //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency/LHC23_PbPb_pass3_I-A11_perRun", md, startValidity, endValidity); //Upload in CCDB
-    api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency/LHC23_PbPb_pass3_fullTPC_perRun", md, startValidity, endValidity); //Upload in CCDB
+    //api.storeAsTFileAny(&counterVector, "MID/Calib/ChamberEfficiency/LHC23_PbPb_pass3_fullTPC_perRun", md, startValidity, endValidity); //Upload in CCDB
+    //api.storeAsTFileAny(&counterVector, "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC22_pass7_skimmed/ccdb", md, startValidity, endValidity); //Upload in CCDB
+    //api.storeAsBinaryFile(&counterVector,sizeof(counterVector),"test.root","std::vector<o2::mid::ChEffCounter>","/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC22_pass7_skimmed/ccdb", md, startValidity, endValidity); //Upload in CCDB
+    //api.createObjectImage(&counterVector)
+    
+    TFile *fOut = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC22_pass7_skimmed/ccdb/o2-mid-ChEffCounter_"+to_string(runNumber)+".root").c_str(),"RECREATE");
+    fOut->WriteObjectAny(&counterVector, "std::vector<o2::mid::ChEffCounter>","ccdb-object");
+    fOut->Close();
+    
 } //end of uploadToCCDB
 
 //Function to delete folders with data from multiple runs merge -> called everytime the code is launched to clean up in case we change
@@ -137,7 +146,7 @@ long int first, long int last) {
 
     bool upload = false;
     if (upload) {
-        uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,first,last);
+        uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,first,last,0);
     } 
     
     //To calculate efficiency and error on efficiency
@@ -189,6 +198,19 @@ long int first, long int last) {
             errEffboth.push_back(errEffBothLB);
             errEffBP.push_back(errEffBPLB);
             errEffNBP.push_back(errEffNBPLB);
+        }
+
+        //I noticed that sometimes in a given run there is a LB with 0 total counts
+        else {
+            //Fill vector for efficiency per LB in the run
+            effboth.push_back(0);
+            effBP.push_back(0);
+            effNBP.push_back(0);
+            
+            //Fill vector for error on efficiency per LB in the run
+            errEffboth.push_back(0);
+            errEffBP.push_back(0);
+            errEffNBP.push_back(0);
         }
     }
 
@@ -282,7 +304,9 @@ void effByRun() { //Main function
     //General path to add flexibility to the code + period name
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
     //string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
-    string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
+    //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
+    //string period = "LHC22o_pass7_minBias";
+    string period = "LHC22_pass7_skimmed";
     string globalPath = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/";
 
     ifstream hLowEff;
@@ -292,6 +316,10 @@ void effByRun() { //Main function
     int LBnumber;
     float lowEfficiency, errLowEfficiency;
     vector<int> LBfiftyBP, LBfiftyNBP; //LB with efficiency < 50% on BP and NBP
+    vector<int> LBfifty_eightyBP, LBfifty_eightyNBP; //LB with 50% < efficiency < 80% on BP and NBP
+    vector<int> LBeighty_ninetyBP, LBeighty_ninetyNBP; //LB with 80% < efficiency < 90% on BP and NBP
+    vector<int> LBninety_ninetyfiveBP, LBninety_ninetyfiveNBP; //LB with 90% < efficiency < 95% on BP and NBP
+    vector<int> LBninetyfiveBP, LBninetyfiveNBP; //LB with efficiency > 95% on BP and NBP
 
     while (hLowEff >> lowEffType >> LBnumber >> planeType >> lowEfficiency >> errLowEfficiency) {
         //cout << lowEffType << "\t" << LBnumber << "\t" << planeType << "\t" << lowEfficiency << "\t" << errLowEfficiency << endl;
@@ -301,14 +329,100 @@ void effByRun() { //Main function
         else if (lowEffType == "50" && planeType == "NBP") {
             LBfiftyNBP.push_back(LBnumber);
         }
+        else if(lowEffType == "50_80" && planeType == "BP") {
+            LBfifty_eightyBP.push_back(LBnumber);
+        }
+        else if(lowEffType == "50_80" && planeType == "NBP") {
+            LBfifty_eightyNBP.push_back(LBnumber);
+        }
+        else if(lowEffType == "80_90" && planeType == "BP") {
+            LBeighty_ninetyBP.push_back(LBnumber);
+        }
+        else if(lowEffType == "80_90" && planeType == "NBP") {
+            LBeighty_ninetyNBP.push_back(LBnumber);
+        }
+        else if(lowEffType == "90_95" && planeType == "BP") {
+            LBninety_ninetyfiveBP.push_back(LBnumber);
+        }
+        else if(lowEffType == "90_95" && planeType == "NBP") {
+            LBninety_ninetyfiveNBP.push_back(LBnumber);
+        }
+        else if(lowEffType == "95" && planeType == "BP") {
+            LBninetyfiveBP.push_back(LBnumber);
+        }
+        else if(lowEffType == "95" && planeType == "NBP") {
+            LBninetyfiveNBP.push_back(LBnumber);
+        }
     }
     //cout << LBfiftyBP.size() << "\t" << LBfiftyNBP.size() << endl;
+    //Placeholder labels for histogram
+    vector<int> binsX;
+    for (int i = 0; i < 5; i++) {
+        binsX.push_back(i);
+    }
+
+    vector<string> labelsEff {"50","50_80","80_90","90_95","95"};
+
+    //Eff ranges per LB on BP
+    TH1F *BPboardsEff = new TH1F("BPboardsEff","BPboardsEff",binsX.size(),binsX.front()+0.5,binsX.back()+0.5);
+    BPboardsEff->SetBinContent(1,LBfiftyBP.size());
+    BPboardsEff->SetBinContent(2,LBfifty_eightyBP.size());
+    BPboardsEff->SetBinContent(3,LBeighty_ninetyBP.size());
+    BPboardsEff->SetBinContent(4,LBninety_ninetyfiveBP.size());
+    BPboardsEff->SetBinContent(5,LBninetyfiveBP.size());
+
+    BPboardsEff->GetXaxis()->SetTitle("BP efficiency [%]");
+    BPboardsEff->GetYaxis()->SetTitle("Normalized counts");
+    BPboardsEff->Scale(1/BPboardsEff->Integral());
+    BPboardsEff->GetYaxis()->SetRangeUser(0,1);
+
+    for (int i = 0; i < binsX.size(); i++) {
+        BPboardsEff->GetXaxis()->SetBinLabel(i+1,(labelsEff.at(i)).c_str());
+    }
+
+    TCanvas *cEffRangeBP = new TCanvas();
+    cEffRangeBP->cd();
+    cEffRangeBP->SetTitle(("BPboardsEff_"+ period).c_str());
+    cEffRangeBP->SetCanvasSize(1200,1200);
+    BPboardsEff->SetStats(0);
+    BPboardsEff->SetLineWidth(3);    
+    BPboardsEff->Draw("HISTO");
+    cEffRangeBP->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/BPboardsEff_"+ period+".png").c_str());
+
+    //Eff ranges per LB on NBP
+    TH1F *NBPboardsEff = new TH1F("NBPboardsEff","NBPboardsEff",binsX.size(),binsX.front()+0.5,binsX.back()+0.5);
+    NBPboardsEff->SetBinContent(1,LBfiftyNBP.size());
+    NBPboardsEff->SetBinContent(2,LBfifty_eightyNBP.size());
+    NBPboardsEff->SetBinContent(3,LBeighty_ninetyNBP.size());
+    NBPboardsEff->SetBinContent(4,LBninety_ninetyfiveNBP.size());
+    NBPboardsEff->SetBinContent(5,LBninetyfiveNBP.size());
+
+    NBPboardsEff->GetXaxis()->SetTitle("NBP efficiency [%]");
+    NBPboardsEff->GetYaxis()->SetTitle("Normalized counts");
+    NBPboardsEff->Scale(1/NBPboardsEff->Integral());
+    NBPboardsEff->GetYaxis()->SetRangeUser(0,1);
+
+    for (int i = 0; i < binsX.size(); i++) {
+        NBPboardsEff->GetXaxis()->SetBinLabel(i+1,(labelsEff.at(i)).c_str());
+    }
+
+    TCanvas *cEffRangeNBP = new TCanvas();
+    cEffRangeNBP->cd();
+    cEffRangeNBP->SetTitle(("NBPboardsEff_"+ period).c_str());
+    cEffRangeNBP->SetCanvasSize(1200,1200);
+    NBPboardsEff->SetStats(0);
+    NBPboardsEff->SetLineWidth(3);
+    NBPboardsEff->Draw("HISTO");
+    cEffRangeNBP->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/NBPboardsEff_"+ period+".png").c_str());
+
 
     //Path of the merged file, run-by-run
     string runPath = globalPath+"runs/"; 
 
     //Path for the .txt file of the run list of the period
-    string runNumbers = globalPath+"run_list.txt"; 
+    //string runNumbers = globalPath+"run_list.txt"; 
+    
+    string runNumbers = globalPath+"run_IR_Bfield.txt";
     string runDates = globalPath+"run_dates.txt";
 
     //Call function to clear all the folders with the data merged from multiple runs
@@ -324,21 +438,27 @@ void effByRun() { //Main function
     //hDate.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/LHC23_PbPb_pass3_I-A11/run_dates.txt");
     
     //Get start and end of each run
+    bool isIn;
     long int runForDate, start, end;
     vector<long int> vRunForDate, vStart, vEnd;
     
-    while (hDate >> runForDate >> start >> end){
-        vRunForDate.push_back(runForDate);
-        vStart.push_back(start);
-        vEnd.push_back(end);
+    while (hDate >> isIn >> runForDate >> start >> end){
+        if (isIn) {
+            vRunForDate.push_back(runForDate);
+            vStart.push_back(start);
+            vEnd.push_back(end);
+        }
     }
 
     //Push back to a vector of int (no need to care about size)
-    float run;
+    float run, IR;
     vector<float> vRun;
+    string bField;
 
-    while(hRun >> run) {
-        vRun.push_back(run);
+    while(hRun >> isIn >> run >> IR >> bField >> start >> end) {
+        if(isIn) {
+            vRun.push_back(run);
+        }   
     }
     //sort in ascending order
     sort(vRun.begin(), vRun.end()); 
@@ -380,9 +500,9 @@ void effByRun() { //Main function
         TH1F *hFiredNBPLB = (TH1F*)d->Get("nFiredNBPperBoard");
         TH1F *hTotLB = (TH1F*)d->Get("nTotperBoard");
 
-        bool uploadByRun = false;
+        bool uploadByRun = true;
         if (uploadByRun) {
-            uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,vStart.at(iRun),vEnd.at(iRun));
+            uploadToCCDB(hFiredBPLB,hFiredNBPLB,hFiredBothPlanesLB,hTotLB,vStart.at(iRun),vEnd.at(iRun),vRun.at(iRun));
         }
     
         tracks = hTotLB->GetEntries();
@@ -420,6 +540,11 @@ void effByRun() { //Main function
             // call efficiency calculator function
         else if (cumulativeTracks >= trackGoal) {
             cout << "Track goal reached!" << endl;
+            if (!open) {
+                //hMergeRuns.open("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/"+period+"/merged_files/runs.dat");
+                hMergeRuns.open(runPath+"runs.dat");
+                open = true;
+            }
             hMergeRuns << runFileName << "\n";
             mergeCounter++;
             cumulativeTracks = 0;
@@ -432,6 +557,7 @@ void effByRun() { //Main function
             string mergeFilesForHadd = '"'+runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root"+'"';
             string mergeRunListForHadd = '"'+runPath+"runs.dat"+'"';
             string mergeFiles = runPath+"mergedRuns"+to_string(mergeCounter)+"/AnalysisResults.root";
+            cout << "mergeFiles for eff calculations: " << mergeFiles << endl;
             cout << "mergeFilesForHadd: " << mergeFilesForHadd << endl;
             gROOT->ProcessLine(Form("hadd(%s,%s)",mergeFilesForHadd.c_str(),mergeRunListForHadd.c_str()));
             //Call calculateEfficiency function on merged files
@@ -542,7 +668,7 @@ void effByRun() { //Main function
     hMergeRuns.close();
 
     cout << "Size of the vector of vectors run by run " << vEffBothLB_runs[0].size() << "\t" << vEffBPLB_runs[0].size() << "\t" << vEffNBPLB_runs[0].size() << endl;
-    cout << "Size of the vector of vectors merged " << vEffBothLB_merged.size() << "\t" << vEffBPLB_merged.size() << "\t" << vEffNBPLB_merged.size() << endl;
+    cout << "Size of the vector of vectors merged " << vEffBothLB_merged[0].size() << "\t" << vEffBPLB_merged[0].size() << "\t" << vEffNBPLB_merged[0].size() << endl;
     
     cout << "size of average run: " << averageRun.size() << endl;
     for (unsigned int i = 0; i < averageRun.size(); i++) {
@@ -567,7 +693,7 @@ void effByRun() { //Main function
     TH2F *hEffByRunAllLB = new TH2F("hEffByRunAllLB","hEffByRunAllLB",vBinsX.size(),vBinsX.front()-0.5,vBinsX.back()-0.5,vEffBPLB_runs[0].size(),0.5,936.5);
 
     for (unsigned int iRun = 1; iRun <= vRun.size(); iRun++) {
-        if (iRun % 5 == 0) {
+        if (iRun % 3 == 0) {
             hEffByRunAllLB->GetXaxis()->SetBinLabel(iRun-1,(to_string((int)vRun.at(iRun-1))).c_str());
         }
         for (unsigned LB = 1; LB <= vEffBPLB_runs[iRun-1].size(); LB++) {
@@ -578,12 +704,14 @@ void effByRun() { //Main function
     TCanvas *cEffByRunAllLB = new TCanvas();
     cEffByRunAllLB->cd();
     hEffByRunAllLB->GetXaxis()->SetNoExponent(1);
+    hEffByRunAllLB->GetXaxis()->SetTitle("Run");
+    hEffByRunAllLB->GetYaxis()->SetTitle("LB");
     hEffByRunAllLB->SetStats(0);
     hEffByRunAllLB->Draw("COLZ");
     //Draw vertical lines - one per run
-    //for (int i = 0; i < vRun.size(); i++) {
-    //    vertRuns.at(i)->Draw("SAME");
-    //}
+    for (int i = 0; i < vRun.size(); i++) {
+        vertRuns.at(i)->Draw("SAME");
+    }
     
     //Structure of the vector is the following
     // (LB1...............LB936) -> first run
@@ -597,25 +725,65 @@ void effByRun() { //Main function
     // (LB1...............LB936) -> Last run   
     //In the plot we want to show columns, in order to do that we have to declare new vectors and save the data of a column inside them
     //Get efficiency for a given LB as a function of the run number
+    
     //run by run
+    vector <float> BPeffLB, BPerrEffLB;
+    TMultiGraph *mEffBP_fifty = new TMultiGraph();
+
+    //For all LB with eff < 50%
+    for (unsigned j = 0; j < LBfiftyBP.size(); j++) {
+        for (unsigned int i = 0; i < vRun.size(); i++) {
+            BPeffLB.push_back(vEffBPLB_runs[i][LBfiftyBP[j]-1]);
+            BPerrEffLB.push_back(vErrEffBPLB_runs[i][LBfiftyBP[j]-1]);
+        }
+        //TGraphErrors *g = new TGraphErrors(vRun.size(),&vRun[0],&BPeffLB[0],NULL,&BPerrEffLB[0]);
+        //mTest->Add(g);
+        gEffPerRunBP.push_back(new TGraphErrors(vRun.size(),&vRun[0],&BPeffLB[0],NULL,&BPerrEffLB[0]));
+        BPeffLB.clear();
+        BPerrEffLB.clear();
+    }
+    
+    //cout << gEffPerRunBP.size() << endl;
+
+    TLegend *lBP = new TLegend();
+
+    for (unsigned int i = 0; i < gEffPerRunBP.size(); i++) {
+        //gEffPerRunBP.at(i)->SetMarkerStyle(markerStyle.at(i));
+        gEffPerRunBP.at(i)->SetMarkerStyle(8);
+        gEffPerRunBP.at(i)->SetMarkerSize(1);
+        //gEffPerRunBP.at(i)->SetMarkerColor(markerColor.at(i));
+        lBP->AddEntry(gEffPerRunBP.at(i),(to_string(LBfiftyBP.at(i))).c_str(),"p");
+        mEffBP_fifty->Add(gEffPerRunBP.at(i));
+    }
+
+    TCanvas *cEffBP_fifty = new TCanvas();
+    cEffBP_fifty->cd();
+    mEffBP_fifty->SetTitle("BP eff < 50%");
+    mEffBP_fifty->GetXaxis()->SetNoExponent(1);
+    mEffBP_fifty->GetYaxis()->SetRangeUser(0,105);
+    mEffBP_fifty->GetXaxis()->SetTitle("Run");
+    mEffBP_fifty->GetYaxis()->SetTitle("Efficiency [%]");
+    mEffBP_fifty->Draw("AP");
+    lBP->Draw("SAME");
+
     vector<float> effLB1,effLB2,effLB3,effLB4,effLB5,effLB6;
     vector<float> errEffLB1,errEffLB2,errEffLB3,errEffLB4,errEffLB5,errEffLB6;
 
     for (unsigned int i = 0; i < vRun.size(); i++) {
-        cout << vEffBPLB_runs[i][10] << endl;
-        effLB1.push_back(vEffBPLB_runs[i][274]);
-        effLB2.push_back(vEffBPLB_runs[i][345]);
-        effLB3.push_back(vEffBPLB_runs[i][638]);
-        effLB4.push_back(vEffBPLB_runs[i][703]);
-        effLB5.push_back(vEffBPLB_runs[i][791]);
-        effLB6.push_back(vEffBPLB_runs[i][862]);
+        //cout << vEffBPLB_runs[i][10] << endl;
+        effLB1.push_back(vEffBPLB_runs[i][10]);
+        effLB2.push_back(vEffBPLB_runs[i][269]);
+        effLB3.push_back(vEffBPLB_runs[i][503]);
+        effLB4.push_back(vEffBPLB_runs[i][737]);
+        //effLB5.push_back(vEffBPLB_runs[i][791]);
+        //effLB6.push_back(vEffBPLB_runs[i][862]);
 
-        errEffLB1.push_back(vErrEffBPLB_runs[i][274]);
-        errEffLB2.push_back(vErrEffBPLB_runs[i][345]);
-        errEffLB3.push_back(vErrEffBPLB_runs[i][638]);
-        errEffLB4.push_back(vErrEffBPLB_runs[i][703]);
-        errEffLB5.push_back(vErrEffBPLB_runs[i][791]);
-        errEffLB6.push_back(vErrEffBPLB_runs[i][862]);
+        errEffLB1.push_back(vErrEffBPLB_runs[i][10]);
+        errEffLB2.push_back(vErrEffBPLB_runs[i][269]);
+        errEffLB3.push_back(vErrEffBPLB_runs[i][503]);
+        errEffLB4.push_back(vErrEffBPLB_runs[i][737]);
+        //errEffLB5.push_back(vErrEffBPLB_runs[i][791]);
+        //errEffLB6.push_back(vErrEffBPLB_runs[i][862]);
     }
 
     //merged runs
@@ -624,22 +792,22 @@ void effByRun() { //Main function
 
     for (unsigned int i = 0; i < averageRun.size(); i++) {
         effLB1merged.push_back(vEffBPLB_merged[i][10]);
-        effLB2merged.push_back(vEffBPLB_merged[i][35]);
-        effLB3merged.push_back(vEffBPLB_merged[i][55]);
-        effLB4merged.push_back(vEffBPLB_merged[i][145]);
+        effLB2merged.push_back(vEffBPLB_merged[i][269]);
+        effLB3merged.push_back(vEffBPLB_merged[i][503]);
+        effLB4merged.push_back(vEffBPLB_merged[i][737]);
 
         errEffLB1merged.push_back(vErrEffBPLB_merged[i][10]);
-        errEffLB2merged.push_back(vErrEffBPLB_merged[i][35]);
-        errEffLB3merged.push_back(vErrEffBPLB_merged[i][55]);
-        errEffLB4merged.push_back(vErrEffBPLB_merged[i][145]);
+        errEffLB2merged.push_back(vErrEffBPLB_merged[i][269]);
+        errEffLB3merged.push_back(vErrEffBPLB_merged[i][503]);
+        errEffLB4merged.push_back(vErrEffBPLB_merged[i][727]);
     }
 
     TGraphErrors *gEffLBrun = new TGraphErrors(vRun.size(),&vRun[0],&effLB1[0],NULL,&errEffLB1[0]);
     TGraphErrors *gEffLBrun2 = new TGraphErrors(vRun.size(),&vRun[0],&effLB2[0],NULL,&errEffLB2[0]);
     TGraphErrors *gEffLBrun3 = new TGraphErrors(vRun.size(),&vRun[0],&effLB3[0],NULL,&errEffLB3[0]);
     TGraphErrors *gEffLBrun4 = new TGraphErrors(vRun.size(),&vRun[0],&effLB4[0],NULL,&errEffLB4[0]);
-    TGraphErrors *gEffLBrun5 = new TGraphErrors(vRun.size(),&vRun[0],&effLB5[0],NULL,&errEffLB5[0]);
-    TGraphErrors *gEffLBrun6 = new TGraphErrors(vRun.size(),&vRun[0],&effLB6[0],NULL,&errEffLB6[0]);
+    //TGraphErrors *gEffLBrun5 = new TGraphErrors(vRun.size(),&vRun[0],&effLB5[0],NULL,&errEffLB5[0]);
+    //TGraphErrors *gEffLBrun6 = new TGraphErrors(vRun.size(),&vRun[0],&effLB6[0],NULL,&errEffLB6[0]);
 
     TGraphErrors *gEffLBmerged = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB1merged[0],NULL,&errEffLB1merged[0]);
     TGraphErrors *gEffLBmerged2 = new TGraphErrors(averageRun.size(),&averageRun[0],&effLB2merged[0],NULL,&errEffLB2merged[0]);
@@ -654,10 +822,10 @@ void effByRun() { //Main function
     gEffLBrun3->SetMarkerColor(kMagenta);
     gEffLBrun4->SetMarkerStyle(8);
     gEffLBrun4->SetMarkerColor(kBlue);
-    gEffLBrun5->SetMarkerStyle(8);
-    gEffLBrun5->SetMarkerColor(kGreen);
-    gEffLBrun6->SetMarkerStyle(8);
-    gEffLBrun6->SetMarkerColor(kYellow+4);
+    //gEffLBrun5->SetMarkerStyle(8);
+    //gEffLBrun5->SetMarkerColor(kGreen);
+    //gEffLBrun6->SetMarkerStyle(8);
+    //gEffLBrun6->SetMarkerColor(kYellow+4);
 
     gEffLBmerged->SetMarkerStyle(24);
     gEffLBmerged2->SetMarkerColor(kGreen);
@@ -670,20 +838,25 @@ void effByRun() { //Main function
 
     TMultiGraph *m = new TMultiGraph();
     m->Add(gEffLBrun);
-    m->Add(gEffLBrun2);
-    m->Add(gEffLBrun3);
-    m->Add(gEffLBrun4);
-    m->Add(gEffLBrun5);
-    m->Add(gEffLBrun6);
-    //m->Add(gEffLBmerged);
+    //m->Add(gEffLBrun2);
+    //m->Add(gEffLBrun3);
+    //m->Add(gEffLBrun4);
+    //m->Add(gEffLBrun5);
+    //m->Add(gEffLBrun6);
+    m->Add(gEffLBmerged);
     //m->Add(gEffLBmerged2);
     //m->Add(gEffLBmerged3);
     //m->Add(gEffLBmerged4);
 
     TCanvas *cExample = new TCanvas();
     cExample->cd();
+    gPad->SetGridx();
+    gPad->SetGridy();
+    m->SetTitle("Merged runs for track goal");
     m->GetXaxis()->SetNoExponent(1);
     m->GetYaxis()->SetRangeUser(0,105);
+    m->GetXaxis()->SetTitle("Run");
+    m->GetYaxis()->SetTitle("Efficiency [%]");
     m->Draw("AP");
 
     hLowEff.close();

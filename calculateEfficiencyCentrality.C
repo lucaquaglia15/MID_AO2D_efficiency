@@ -19,6 +19,9 @@
 #include <stdlib.h> 
 #include "TKey.h"
 #include "TLine.h"
+#include <unordered_map>
+#include <chrono>
+#include <thread>
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
 #include "MIDBase/DetectorParameters.h" //Detector parameters
@@ -26,35 +29,92 @@
 #include "DataFormatsMID/Track.h" //MID track from O2
 #include "DataFormatsMID/ChEffCounter.h" //Chamber efficiency counter
 
+
+//# ev vs phi 
+
 using namespace std;
 
 bool debug = false;
 
 void calculateEfficiencyCentrality() {
 
+    //MID RPC mapping
     o2::mid::Mapping mapping;
 
+    //General path to add flexibility to the code + period name
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
     //string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
     //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
     //string period = "LHC22o_pass7_minBias";
-    string period  = "DQ_LHC23PbPb_pass4";
+    //string period = "LHC22_pass7_skimmed";
+    //string period = "LHC23_pass4_skimmed";
+    string period = "LHC23_PbPb_pass4";
+    //string period = "LHC24_pass1_skimmed";
+    //string period = "LHC24_ppref_pass1"; 
+    //string period = "LHC25ad_pass2"; //pO
+    //string period = "LHC25ae_pass2"; //O-O
+    //string period = "LHC25af_pass2"; //Ne-Ne
 
-    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root"; //pp
-    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23zzh_pass4_test1_QC1_small.root"; //Pb-Pb
-    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResultsLHC23zzn_apass3_all_I-A11_some.root";
-    //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_PbPb_pass3_I-A11.root";
-    
-    string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_"+period+".root";
+    bool isPbPb;
+
+    if (period == "LHC23_PbPb_pass4" || period == "LHC24_PbPb_pass1" || period == "LHC25ae_pass2" || period == "LHC25af_pass2") {
+        isPbPb = true;
+    }
+    else {
+        isPbPb = false;
+    }
+
+    //string inFileName = "/media/luca/Elements/MIDefficiency/AnalysisResults_"+period+".root";
+    string inFileName = "/media/luca/Extreme SSD/MIDefficieincy/"+period+"/AnalysisResults.root";
+
+    cout << "Analyzing file: " << inFileName << " isPbPb: " << isPbPb << endl;
 
     TFile *fIn = new TFile(inFileName.c_str(),"READ");
     
     //string outFileName = "efficiency.root";
     //TFile *fOut = new TFile(outFileName.c_str(),"RECREATE");
 
+    float maxCentrality, maxEta, maxPhi, maxPt;
+
+    float minCentrality, minEta, minPhi, minPt;
+
+    int binsCentrality = 9;
+    int binsPt = 150;
+    int binsEta = 100;
+    int binsPhi = 100;
+
     int nBinsPlane = 4;
     int nBinsRPC = 72;
     int nBinsBoard = 936;
+
+    if (isPbPb) {
+        maxCentrality = 90.;
+        maxEta = 0.;
+        maxPhi = 4.;
+        maxPt = 20.;
+
+        minCentrality = 0.;
+        minEta = -5;
+        minPhi = -4;
+        minPt = 0.; 
+    }
+
+    else {
+        maxCentrality = 90.;
+        maxEta = 5.;
+        maxPhi = 6.28319;
+        maxPt = 20.;
+
+        minCentrality = 0.;
+        minEta = -5;
+        minPhi = -6.28319;
+        minPt = 0.;
+    }
+
+    float ptStep = (maxPt-minPt)/binsPt;
+    float etaStep = (maxEta-minEta)/binsEta;
+    float phiStep = (maxPhi-minPhi)/binsPhi;
+    float centStep = (maxCentrality-minCentrality)/binsCentrality;
 
     string planeName[4] = {"MT11","MT12","MT21","MT22"};
 
@@ -86,10 +146,23 @@ void calculateEfficiencyCentrality() {
     float effBothLB, effBPLB, effNBPLB;
     float errEffBothLB, errEffBPLB, errEffNBPLB;
  
-    //vector<double> min = {0,10,20,30};
-    //vector<double> max = {10,20,30,40};
+    //1-2 = 0-10%
+    //2-3 = 10-20%
+    //3-4 = 20-30% 
+    //4-5 = 30-40%
+    //5-6 = 40-50%
+    //6-7 = 60-70% 
+    //7-8 = 70-80%
+    //8-9 = 80-90%
+    //Map between bin number and corresponding centrality
+    //centr[1] -> prints 0
+    unordered_map<int, int> centrLow = {{0,0},{1,10},{2,20},{3,30},{4,40},{5,50},{6,60},{7,70},{8,80}};
+    unordered_map<int, int> centrHigh = {{0,10},{1,20},{2,30},{3,40},{4,50},{5,60},{6,70},{7,80},{8,90}};
+    
+    //vector<double> min = {1,1,2,3,8};
+    //vector<double> max = {9,2,3,4,9};
     vector<double> min = {1,1,2,3,4};
-    vector<double> max = {9,2,3,4,5};
+    vector<double> max = {9,1,2,3,4};
     vector<int> color = {1,2,3,4,6};
 
     //Open the directory with the output of the task 
@@ -98,77 +171,1193 @@ void calculateEfficiencyCentrality() {
 
     THStack *hEffBPPlane_centr = new THStack();
 
-    bool centrality = false;
-
     //Analyze Planes
     TH1F *hEffPlane_both = new TH1F("effPlane_both","effPlane_both",nBinsPlane,-0.5,3.5);
     TH1F *hEffPlane_BP = new TH1F("effPlane_BP","effPlane_BP",nBinsPlane,-0.5,3.5);
     TH1F *hEffPlane_NBP = new TH1F("effPlane_NBP","effPlane_NBP",nBinsPlane,-0.5,3.5);
 
-    if (centrality) {
-        //Get plane THnSparse(s)
-        THnSparse *hSparseCentFiredTotPerPlane = (THnSparse*)d->Get("hSparseCentFiredTotperPlane");
-        THnSparse *hSparseCentFiredBPPerPlane = (THnSparse*)d->Get("hSparseCentFiredBPperPlane");
+    //Get plane THNsparses once and for all to be used later on
+    THnSparse *hSparseCentFiredTotPerPlane = (THnSparse*)d->Get("hSparseCentFiredTotperPlane");
+    THnSparse *hSparseCentFiredBothPerPlane = (THnSparse*)d->Get("hSparseCentFiredBothperPlane");
+    THnSparse *hSparseCentFiredBPPerPlane = (THnSparse*)d->Get("hSparseCentFiredBPperPlane");
+    THnSparse *hSparseCentFiredNBPPerPlane = (THnSparse*)d->Get("hSparseCentFiredNBPperPlane");
+
+    THnSparse *hSparseCentFiredTotPerRPC = (THnSparse*)d->Get("hSparseCentFiredTotperRPC");
+    THnSparse *hSparseCentFiredBothPerRPC = (THnSparse*)d->Get("hSparseCentFiredBothperRPC");
+    THnSparse *hSparseCentFiredBPPerRPC = (THnSparse*)d->Get("hSparseCentFiredBPperRPC");
+    THnSparse *hSparseCentFiredNBPPerRPC = (THnSparse*)d->Get("hSparseCentFiredNBPperRPC");
+
+    //Centrality on x axis, one histo per plane
+    TH1F *hEff_bothPlanes_cent[4];
+    TH1F *hEff_BPPlanes_cent[4];
+    TH1F *hEff_NBPPlanes_cent[4];
+    //pt
+    TH1F *hEff_bothPlanes_pt[4];
+    TH1F *hEff_BPPlanes_pt[4];
+    TH1F *hEff_NBPPlanes_pt[4];
+    //eta
+    TH1F *hEff_bothPlanes_eta[4];
+    TH1F *hEff_BPPlanes_eta[4];
+    TH1F *hEff_NBPPlanes_eta[4];
+    //phi
+    TH1F *hEff_bothPlanes_phi[4];
+    TH1F *hEff_BPPlanes_phi[4];
+    TH1F *hEff_NBPPlanes_phi[4];
+
+    //Centrality on x axis, one histo per RPC
+    TH1F *hEff_bothRPC_cent[72];
+    TH1F *hEff_BPRPC_cent[72];
+    TH1F *hEff_NBPRPC_cent[72];
+    //pt
+    TH1F *hEff_bothRPC_pt[72];
+    TH1F *hEff_BPRPC_pt[72];
+    TH1F *hEff_NBPRPC_pt[72];
+    //eta
+    TH1F *hEff_bothRPC_eta[72];
+    TH1F *hEff_BPRPC_eta[72];
+    TH1F *hEff_NBPRPC_eta[72];
+    //phi
+    TH1F *hEff_bothRPC_phi[72];
+    TH1F *hEff_BPRPC_phi[72];
+    TH1F *hEff_NBPRPC_phi[72];
+
+
+    for (int i = 0; i < nBinsPlane; i++) {
+        hEff_bothPlanes_cent[i] = new TH1F(("hEff_"+planeName[i]+"_bothPlanes_cent").c_str(),("hEff_"+planeName[i]+"_bothPlanes_cent").c_str(),9,0.,90.);
+        hEff_BPPlanes_cent[i] = new TH1F(("hEff_"+planeName[i]+"_BP_cent").c_str(),("hEff_"+planeName[i]+"_BP_cent").c_str(),9,0.,90.);
+        hEff_NBPPlanes_cent[i] = new TH1F(("hEff_"+planeName[i]+"_NBP_cent").c_str(),("hEff_"+planeName[i]+"_NBP_cent").c_str(),9,0.,90.);
+        //pt
+        hEff_bothPlanes_pt[i] = new TH1F(("hEff_"+planeName[i]+"_bothPlanes_pt").c_str(),("hEff_"+planeName[i]+"_bothPlanes_pt").c_str(),150,0.,20.);
+        hEff_BPPlanes_pt[i] = new TH1F(("hEff_"+planeName[i]+"_BP_pt").c_str(),("hEff_"+planeName[i]+"_BP_pt").c_str(),150,0.,20.);
+        hEff_NBPPlanes_pt[i] = new TH1F(("hEff_"+planeName[i]+"_NBP_pt").c_str(),("hEff_"+planeName[i]+"_NBP_pt").c_str(),150,0.,20.);
+        //eta
+        hEff_bothPlanes_eta[i] = new TH1F(("hEff_"+planeName[i]+"_bothPlanes_eta").c_str(),("hEff_"+planeName[i]+"_bothPlanes_eta").c_str(),binsEta,minEta,maxEta);
+        hEff_BPPlanes_eta[i] = new TH1F(("hEff_"+planeName[i]+"_BP_eta").c_str(),("hEff_"+planeName[i]+"_BP_eta").c_str(),binsEta,minEta,maxEta);
+        hEff_NBPPlanes_eta[i] = new TH1F(("hEff_"+planeName[i]+"_NBP_eta").c_str(),("hEff_"+planeName[i]+"_NBP_eta").c_str(),binsEta,minEta,maxEta);
+        //phi
+        hEff_bothPlanes_phi[i] = new TH1F(("hEff_"+planeName[i]+"_bothPlanes_phi").c_str(),("hEff_"+planeName[i]+"_bothPlanes_phi").c_str(),binsPhi,minPhi,maxPhi);
+        hEff_BPPlanes_phi[i] = new TH1F(("hEff_"+planeName[i]+"_BP_phi").c_str(),("hEff_"+planeName[i]+"_BP_phi").c_str(),binsPhi,minPhi,maxPhi);
+        hEff_NBPPlanes_phi[i] = new TH1F(("hEff_"+planeName[i]+"_NBP_phi").c_str(),("hEff_"+planeName[i]+"_NBP_phi").c_str(),binsPhi,minPhi,maxPhi);
+    }
+
+    for (int i = 0; i < nBinsRPC; i++) {
+        hEff_bothRPC_cent[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_bothRPC_cent").c_str(),("hEff_RPC_"+to_string(i)+"_bothRPC_cent").c_str(),9,0.,90.);
+        hEff_BPRPC_cent[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_BP_RPC_cent").c_str(),("hEff_RPC_"+to_string(i)+"_BP_RPC_cent").c_str(),9,0.,90.);
+        hEff_NBPRPC_cent[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_NBP_RPC_cent").c_str(),("hEff_RPC_"+to_string(i)+"_NBP_RPC_cent").c_str(),9,0.,90.);
+        //pt
+        hEff_bothRPC_pt[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_bothRPC_pt").c_str(),("hEff_RPC_"+to_string(i)+"_bothRPC_pt").c_str(),150,0.,20.);
+        hEff_BPRPC_pt[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_BP_RPC_pt").c_str(),("hEff_RPC_"+to_string(i)+"_BP_RPC_pt").c_str(),150,0.,20.);
+        hEff_NBPRPC_pt[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_NBP_RPC_pt").c_str(),("hEff_RPC_"+to_string(i)+"_NBP_RPC_pt").c_str(),150,0.,20.);
+        //eta
+        hEff_bothRPC_eta[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_bothRPC_eta").c_str(),("hEff_RPC_"+to_string(i)+"_bothRPC_eta").c_str(),binsEta,minEta,maxEta);
+        hEff_BPRPC_eta[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_BP_RPC_eta").c_str(),("hEff_RPC_"+to_string(i)+"_BP_RPC_eta").c_str(),binsEta,minEta,maxEta);
+        hEff_NBPRPC_eta[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_NBP_RPC_eta").c_str(),("hEff_RPC_"+to_string(i)+"_NBP_RPC_eta").c_str(),binsEta,minEta,maxEta);
+        //phi
+        hEff_bothRPC_phi[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_bothRPC_phi").c_str(),("hEff_RPC_"+to_string(i)+"_bothRPC_phi").c_str(),binsPhi,minPhi,maxPhi);
+        hEff_BPRPC_phi[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_BP_RPC_phi").c_str(),("hEff_RPC_"+to_string(i)+"_BP_RPC_phi").c_str(),binsPhi,minPhi,maxPhi);
+        hEff_NBPRPC_phi[i] = new TH1F(("hEff_RPC_"+to_string(i)+"_NBP_RPC_phi").c_str(),("hEff_RPC_"+to_string(i)+"_NBP_RPC_phi").c_str(),binsPhi,minPhi,maxPhi);
+    }
+
+    TLegend *lCentrality = new TLegend(0.129,0.626,0.206,0.881,"","rNDC");
+    lCentrality->SetBorderSize(0);	
+    lCentrality->SetFillStyle(0);	
+    lCentrality->SetTextFont(62);	
+
+    //Perform a centrality cut on the data
+    //Only true for Pb-Pb or O-O   
+    bool centralityCut = false;
+    
+    if (!isPbPb) {
+        centralityCut = false;
+    }
+
+    if(centralityCut) {
+        hSparseCentFiredTotPerPlane->GetAxis(1)->SetRange(50/centStep,90/centStep);
+        hSparseCentFiredBothPerPlane->GetAxis(1)->SetRange(50/centStep,90/centStep);
+        hSparseCentFiredBPPerPlane->GetAxis(1)->SetRange(50/centStep,90/centStep);
+        hSparseCentFiredNBPPerPlane->GetAxis(1)->SetRange(50/centStep,90/centStep);
+
+        hSparseCentFiredTotPerRPC->GetAxis(1)->SetRange(50/centStep,90/centStep);
+        hSparseCentFiredBothPerRPC->GetAxis(1)->SetRange(50/centStep,90/centStep);
+        hSparseCentFiredBPPerRPC->GetAxis(1)->SetRange(50/centStep,90/centStep);
+        hSparseCentFiredNBPPerRPC->GetAxis(1)->SetRange(50/centStep,90/centStep);
+    }
+
+    //Pt cut, can be used on all datasets (pp, O-O, Pb-Pb, p-O, Ne-Ne)
+    bool ptCut = true; //If true, a pt cut is also applied in the computation of the efficiency vs eta
+    //Add a cut in pt in the efficiency computation
+
+    //Change the value here with the desired pt cut x/ptStep where x is the desired pt value and the step is calculated earlier
+    int ptMinCut = 1.8/ptStep;
+
+    if (ptCut) {
+
+        int ptAxis;
+
+        //If the data is pp or Pb-Pb (O-O, Ne-Ne) the axes on the THNsparse are different
+        if (isPbPb) {
+            ptAxis = 2;
+        }
+        else {
+            ptAxis = 1;
+        }
         
-        for (unsigned int j = 0; j < min.size(); j++) {
+        cout << "Cutting on pt axis (2 for PbPb, 1 for pp): " << ptAxis << " at pt = " << ptMinCut*ptStep << " GeV/c" << endl;
+        
+        hSparseCentFiredTotPerPlane->GetAxis(ptAxis)->SetRange(ptMinCut,150);
+        hSparseCentFiredBothPerPlane->GetAxis(ptAxis)->SetRange(ptMinCut,150);
+        hSparseCentFiredBPPerPlane->GetAxis(ptAxis)->SetRange(ptMinCut,150);
+        hSparseCentFiredNBPPerPlane->GetAxis(ptAxis)->SetRange(ptMinCut,150);
 
-            //Analyze Planes
-            TH1F *hEffPlane_both = new TH1F("effPlane_both","effPlane_both",nBinsPlane,-0.5,3.5);
-            TH1F *hEffPlane_BP = new TH1F("effPlane_BP","effPlane_BP",nBinsPlane,-0.5,3.5);
-            TH1F *hEffPlane_NBP = new TH1F("effPlane_NBP","effPlane_NBP",nBinsPlane,-0.5,3.5);
+        hSparseCentFiredTotPerRPC->GetAxis(ptAxis)->SetRange(ptMinCut,150);
+        hSparseCentFiredBothPerRPC->GetAxis(ptAxis)->SetRange(ptMinCut,150);
+        hSparseCentFiredBPPerRPC->GetAxis(ptAxis)->SetRange(ptMinCut,150);
+        hSparseCentFiredNBPPerRPC->GetAxis(ptAxis)->SetRange(ptMinCut,150);
+    }
 
-            hSparseCentFiredTotPerPlane->GetAxis(1)->SetRange(min.at(j),max.at(j));
-            hSparseCentFiredBPPerPlane->GetAxis(1)->SetRange(min.at(j),max.at(j));
+    //Plots vs centrality/pt/eta/phi
+    //Depending on the cuts selected earlier the plots might be cut or not
 
-            TH1D* totPlaneCountsProj = hSparseCentFiredTotPerPlane->Projection(0); 
-            TH1D* BPPlaneCountsProj = hSparseCentFiredBPPerPlane->Projection(0); 
+    bool centrality = true;
+
+    if (!isPbPb) {
+        centrality = false;
+    }
+
+    if (centrality) {  
+
+        TH2D* totPlaneCountsProj = hSparseCentFiredTotPerPlane->Projection(0,1); 
+        TH2D* BothPlaneCountsProj = hSparseCentFiredBothPerPlane->Projection(0,1);
+        TH2D* BPPlaneCountsProj = hSparseCentFiredBPPerPlane->Projection(0,1);
+        TH2D* NBPPlaneCountsProj = hSparseCentFiredNBPPerPlane->Projection(0,1);
+        
+        TH2D* totRPCCountsProj = hSparseCentFiredTotPerRPC->Projection(0,1); 
+        TH2D* BothRPCCountsProj = hSparseCentFiredBothPerRPC->Projection(0,1);
+        TH2D* BPRPCCountsProj = hSparseCentFiredBPPerRPC->Projection(0,1);
+        TH2D* NBPRPCCountsProj = hSparseCentFiredNBPPerRPC->Projection(0,1);
+
+        for (int centBin = 1; centBin <= totPlaneCountsProj->GetNbinsX(); centBin++) {
+ 
+            for (int i = 1; i <= nBinsPlane; i++) {
+                effBothPlane = (BothPlaneCountsProj->GetBinContent(centBin,i)/totPlaneCountsProj->GetBinContent(centBin,i))*100;
+                effBPPlane = (BPPlaneCountsProj->GetBinContent(centBin,i)/totPlaneCountsProj->GetBinContent(centBin,i))*100;
+                effNBPPlane = (NBPPlaneCountsProj->GetBinContent(centBin,i)/totPlaneCountsProj->GetBinContent(centBin,i))*100;
+
+                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/totPlaneCountsProj->GetBinContent(centBin,i));
+                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/totPlaneCountsProj->GetBinContent(centBin,i));
+                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/totPlaneCountsProj->GetBinContent(centBin,i));
+
+                cout << effBothPlane << "\t +- \t" << errEffBothPlane << endl;
+                cout << effBPPlane << "\t +- \t" << errEffBPPlane << endl;
+                cout << effNBPPlane << "\t +- \t" << errEffNBPPlane << endl;
+
+                hEff_bothPlanes_cent[i-1]->SetBinContent(centBin,effBothPlane);
+                hEff_bothPlanes_cent[i-1]->SetBinError(centBin,errEffBothPlane);
+                hEff_BPPlanes_cent[i-1]->SetBinContent(centBin,effBPPlane);
+                hEff_BPPlanes_cent[i-1]->SetBinError(centBin,errEffBPPlane);
+                hEff_NBPPlanes_cent[i-1]->SetBinContent(centBin,effNBPPlane);
+                hEff_NBPPlanes_cent[i-1]->SetBinError(centBin,errEffNBPPlane); 
+            } 
+            for (int i = 1; i <= nBinsRPC; i++) {
+                effBothRPC = (BothRPCCountsProj->GetBinContent(centBin,i)/totRPCCountsProj->GetBinContent(centBin,i))*100;
+                effBPRPC = (BPRPCCountsProj->GetBinContent(centBin,i)/totRPCCountsProj->GetBinContent(centBin,i))*100;
+                effNBPRPC = (NBPRPCCountsProj->GetBinContent(centBin,i)/totRPCCountsProj->GetBinContent(centBin,i))*100;
+
+                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/totRPCCountsProj->GetBinContent(centBin,i));
+                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/totRPCCountsProj->GetBinContent(centBin,i));
+                errEffNBPRPC = TMath::Sqrt(effNBPRPC*(100-effNBPRPC)/totRPCCountsProj->GetBinContent(centBin,i));
+
+                cout << effBothRPC << "\t +- \t" << errEffBothRPC << endl;
+                cout << effBPRPC << "\t +- \t" << errEffBPRPC << endl;
+                cout << effNBPRPC << "\t +- \t" << errEffNBPRPC << endl;
+
+                hEff_bothRPC_cent[i-1]->SetBinContent(centBin,effBothRPC);
+                hEff_bothRPC_cent[i-1]->SetBinError(centBin,errEffBothRPC);
+                hEff_BPRPC_cent[i-1]->SetBinContent(centBin,effBPRPC);
+                hEff_BPRPC_cent[i-1]->SetBinError(centBin,errEffBPRPC);
+                hEff_NBPRPC_cent[i-1]->SetBinContent(centBin,effNBPRPC);
+                hEff_NBPRPC_cent[i-1]->SetBinError(centBin,errEffNBPRPC); 
+            }   
+        }   
+        delete totPlaneCountsProj;
+        delete BothPlaneCountsProj;
+        delete BPPlaneCountsProj;
+        delete NBPPlaneCountsProj;
+        //-----//
+        delete totRPCCountsProj;
+        delete BothRPCCountsProj;
+        delete BPRPCCountsProj;
+        delete NBPRPCCountsProj;            
+    } //End of if(centrality)
+
+    int ptRange = 1;
+    //float ptMinCut = (int)2/ptStep;
+    cout << "Pt step (GeV/c): " << ptStep << " phi step (rad): " << phiStep << " eta step (a.u.): " << etaStep << " cent step (%): " << centStep << endl;
+    cout << "ptMinCut " << ptMinCut << " maxPt/ptStep " << maxPt/ptStep << endl;
+    cout << "min eta: " << TMath::Abs(-2/etaStep) << " max eta: " << TMath::Abs(-4/etaStep) << endl;
+    cout << "cent 50%: " << 50/centStep << " cent 90%: " << 90/centStep << endl;
+    cout << "min phi: " << (int)(3.3/phiStep) << "max phi: " << (int)(6.6/phiStep) <<endl;
+
+    //Analyze eff vs pt
+    bool pt = true;
+    if (pt) {
+        
+        int ptAxis;
+
+        if (isPbPb) {
+            ptAxis = 2;
+        }
+        else {
+            ptAxis = 1;
+        }
+        
+        cout << "Analyzing pt with axis (2 for PbPb, 1 for pp): " << ptAxis << endl;
+
+        TH2D* totPlaneCountsProj = hSparseCentFiredTotPerPlane->Projection(0,ptAxis); 
+        TH2D* BothPlaneCountsProj = hSparseCentFiredBothPerPlane->Projection(0,ptAxis);
+        TH2D* BPPlaneCountsProj = hSparseCentFiredBPPerPlane->Projection(0,ptAxis);
+        TH2D* NBPPlaneCountsProj = hSparseCentFiredNBPPerPlane->Projection(0,ptAxis);
+            
+        TH2D* totRPCCountsProj = hSparseCentFiredTotPerRPC->Projection(0,ptAxis); 
+        TH2D* BothRPCCountsProj = hSparseCentFiredBothPerRPC->Projection(0,ptAxis);
+        TH2D* BPRPCCountsProj = hSparseCentFiredBPPerRPC->Projection(0,ptAxis);
+        TH2D* NBPRPCCountsProj = hSparseCentFiredNBPPerRPC->Projection(0,ptAxis);
+    
+        cout << "Conteggi pt: " << totPlaneCountsProj->GetNbinsX() << endl << endl;
+       
+        for (int ptBin = 1; ptBin <= totPlaneCountsProj->GetNbinsX(); ptBin++) {
+            cout << ptBin << endl;
 
             for (int i = 1; i <= nBinsPlane; i++) {
-                //effBothPlane = (bothPlaneCountsProj->GetBinContent(i)/totPlaneCountsProj->GetBinContent(i))*100;
-                effBPPlane = (BPPlaneCountsProj->GetBinContent(i)/totPlaneCountsProj->GetBinContent(i))*100;
-                //effNBPPlane = (NBPBPPlaneCountsProj->GetBinContent(i)/totPlaneCountsProj->GetBinContent(i))*100;
 
-                //errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/totPlaneCountsProj->GetBinContent(i));
-                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/totPlaneCountsProj->GetBinContent(i));
-                //errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/totPlaneCountsProj->GetBinContent(i));
+                effBothPlane = (BothPlaneCountsProj->GetBinContent(ptBin,i)/totPlaneCountsProj->GetBinContent(ptBin,i))*100;
+                effBPPlane = (BPPlaneCountsProj->GetBinContent(ptBin,i)/totPlaneCountsProj->GetBinContent(ptBin,i))*100;
+                effNBPPlane = (NBPPlaneCountsProj->GetBinContent(ptBin,i)/totPlaneCountsProj->GetBinContent(ptBin,i))*100;
 
-                //hEffPlane_both->SetBinContent(i,effBothPlane);
-                //hEffPlane_both->SetBinError(i,errEffBothPlane);
-                hEffPlane_BP->SetBinContent(i,effBPPlane);
-                hEffPlane_BP->SetBinError(i,errEffBPPlane);
-                hEffPlane_BP->SetLineColor(color.at(j));
-                //hEffPlane_NBP->SetBinContent(i,effNBPPlane);
-                //hEffPlane_NBP->SetBinError(i,errEffNBPPlane);
+                if (std::isnan(effBothPlane)) {
+                    continue;
+                }
+
+                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/totPlaneCountsProj->GetBinContent(ptBin,i));
+                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/totPlaneCountsProj->GetBinContent(ptBin,i));
+                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/totPlaneCountsProj->GetBinContent(ptBin,i));
+
+                cout << "pT analysis, plane: " << i-1 << endl;
+                //cout << effBothPlane << "\t +- \t" << errEffBothPlane << endl;
+                //cout << effBPPlane << "\t +- \t" << errEffBPPlane << endl;
+                //cout << effNBPPlane << "\t +- \t" << errEffNBPPlane << endl;
+
+                if (ptCut) {
+                    hEff_bothPlanes_pt[i-1]->SetBinContent(ptBin+14,effBothPlane);
+                    hEff_bothPlanes_pt[i-1]->SetBinError(ptBin+14,errEffBothPlane);
+                    hEff_BPPlanes_pt[i-1]->SetBinContent(ptBin+14,effBPPlane);
+                    hEff_BPPlanes_pt[i-1]->SetBinError(ptBin+14,errEffBPPlane);
+                    hEff_NBPPlanes_pt[i-1]->SetBinContent(ptBin+14,effNBPPlane);
+                    hEff_NBPPlanes_pt[i-1]->SetBinError(ptBin+14,errEffNBPPlane);
+                }
+                else {
+                    hEff_bothPlanes_pt[i-1]->SetBinContent(ptBin,effBothPlane);
+                    hEff_bothPlanes_pt[i-1]->SetBinError(ptBin,errEffBothPlane);
+                    hEff_BPPlanes_pt[i-1]->SetBinContent(ptBin,effBPPlane);
+                    hEff_BPPlanes_pt[i-1]->SetBinError(ptBin,errEffBPPlane);
+                    hEff_NBPPlanes_pt[i-1]->SetBinContent(ptBin,effNBPPlane);
+                    hEff_NBPPlanes_pt[i-1]->SetBinError(ptBin,errEffNBPPlane);
+                }
+                 
             }
-            hEffBPPlane_centr->Add(hEffPlane_BP);
+
+            for (int i = 1; i <= nBinsRPC; i++) {
+
+                effBothRPC = (BothRPCCountsProj->GetBinContent(ptBin,i)/totRPCCountsProj->GetBinContent(ptBin,i))*100;
+                effBPRPC = (BPRPCCountsProj->GetBinContent(ptBin,i)/totRPCCountsProj->GetBinContent(ptBin,i))*100;
+                effNBPRPC = (NBPRPCCountsProj->GetBinContent(ptBin,i)/totRPCCountsProj->GetBinContent(ptBin,i))*100;
+
+                if (std::isnan(effBothRPC)) {
+                    continue;
+                }
+
+                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/totRPCCountsProj->GetBinContent(ptBin,i));
+                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/totRPCCountsProj->GetBinContent(ptBin,i));
+                errEffNBPRPC = TMath::Sqrt(effNBPRPC*(100-effNBPRPC)/totRPCCountsProj->GetBinContent(ptBin,i));
+
+                cout << "pT analysis, RPC: " << i-1 << endl;
+                //cout << effBothRPC << "\t +- \t" << errEffBothRPC << endl;
+                //cout << effBPRPC << "\t +- \t" << errEffBPRPC << endl;
+                //cout << effNBPRPC << "\t +- \t" << errEffNBPRPC << endl;
+
+                hEff_bothRPC_pt[i-1]->SetBinContent(ptBin+14,effBothRPC);
+                hEff_bothRPC_pt[i-1]->SetBinError(ptBin+14,errEffBothRPC);
+                hEff_BPRPC_pt[i-1]->SetBinContent(ptBin+14,effBPRPC);
+                hEff_BPRPC_pt[i-1]->SetBinError(ptBin+14,errEffBPRPC);
+                hEff_NBPRPC_pt[i-1]->SetBinContent(ptBin+14,effNBPRPC);
+                hEff_NBPRPC_pt[i-1]->SetBinError(ptBin+14,errEffNBPRPC); 
+
+            }
+        }
+        delete totPlaneCountsProj;
+        delete BothPlaneCountsProj;
+        delete BPPlaneCountsProj;
+        delete NBPPlaneCountsProj;
+        //-----//
+        delete totRPCCountsProj;
+        delete BothRPCCountsProj;
+        delete BPRPCCountsProj;
+        delete NBPRPCCountsProj;
+    } //end of if(pt)
+
+    int etaRange = 1;
+
+    bool eta = false;
+    if (eta) {
+
+        int etaAxis;
+
+        if (isPbPb) {
+            etaAxis = 3;
+        }
+        else {
+            etaAxis = 2;
         }
         
-    }
+        cout << "Analyzing eta with axis (2 for PbPb, 1 for pp): " << etaAxis << endl;
+
+        TH2D* totPlaneCountsProj = hSparseCentFiredTotPerPlane->Projection(0,etaAxis); 
+        TH2D* BothPlaneCountsProj = hSparseCentFiredBothPerPlane->Projection(0,etaAxis);
+        TH2D* BPPlaneCountsProj = hSparseCentFiredBPPerPlane->Projection(0,etaAxis);
+        TH2D* NBPPlaneCountsProj = hSparseCentFiredNBPPerPlane->Projection(0,etaAxis);
+        
+        TH2D* totRPCCountsProj = hSparseCentFiredTotPerRPC->Projection(0,etaAxis); 
+        TH2D* BothRPCCountsProj = hSparseCentFiredBothPerRPC->Projection(0,etaAxis);
+        TH2D* BPRPCCountsProj = hSparseCentFiredBPPerRPC->Projection(0,etaAxis);
+        TH2D* NBPRPCCountsProj = hSparseCentFiredNBPPerRPC->Projection(0,etaAxis);
+
+        //Loop through the eta bins
+        for (int etaBin = 1; etaBin <= totPlaneCountsProj->GetNbinsX(); etaBin++) {          
+            cout << "eta analysis, bin: " << etaBin << endl;
+
+            for (int i = 1; i <= nBinsPlane; i++) {
+                effBothPlane = (BothPlaneCountsProj->GetBinContent(etaBin,i)/totPlaneCountsProj->GetBinContent(etaBin,i))*100;
+                effBPPlane = (BPPlaneCountsProj->GetBinContent(etaBin,i)/totPlaneCountsProj->GetBinContent(etaBin,i))*100;
+                effNBPPlane = (NBPPlaneCountsProj->GetBinContent(etaBin,i)/totPlaneCountsProj->GetBinContent(etaBin,i))*100;
+
+                if (std::isnan(effBothPlane)) {
+                    continue;
+                }
+
+                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/totPlaneCountsProj->GetBinContent(etaBin,i));
+                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/totPlaneCountsProj->GetBinContent(etaBin,i));
+                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/totPlaneCountsProj->GetBinContent(etaBin,i));
+
+                cout << effBothPlane << "\t +- \t" << errEffBothPlane << endl;
+                cout << effBPPlane << "\t +- \t" << errEffBPPlane << endl;
+                cout << effNBPPlane << "\t +- \t" << errEffNBPPlane << endl;
+
+                hEff_bothPlanes_eta[i-1]->SetBinContent(etaBin,effBothPlane);
+                hEff_bothPlanes_eta[i-1]->SetBinError(etaBin,errEffBothPlane);
+                hEff_BPPlanes_eta[i-1]->SetBinContent(etaBin,effBPPlane);
+                hEff_BPPlanes_eta[i-1]->SetBinError(etaBin,errEffBPPlane);
+                hEff_NBPPlanes_eta[i-1]->SetBinContent(etaBin,effNBPPlane);
+                hEff_NBPPlanes_eta[i-1]->SetBinError(etaBin,errEffNBPPlane); 
+            }
+
+            for (int i = 1; i <= nBinsRPC; i++) {
+
+                effBothRPC = (BothRPCCountsProj->GetBinContent(etaBin,i)/totRPCCountsProj->GetBinContent(etaBin,i))*100;
+                effBPRPC = (BPRPCCountsProj->GetBinContent(etaBin,i)/totRPCCountsProj->GetBinContent(etaBin,i))*100;
+                effNBPRPC = (NBPRPCCountsProj->GetBinContent(etaBin,i)/totRPCCountsProj->GetBinContent(etaBin,i))*100;
+
+                if (std::isnan(effBothRPC)) {
+                    continue;
+                }
+
+                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/totRPCCountsProj->GetBinContent(etaBin,i));
+                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/totRPCCountsProj->GetBinContent(etaBin,i));
+                errEffNBPRPC = TMath::Sqrt(effNBPRPC*(100-effNBPRPC)/totRPCCountsProj->GetBinContent(etaBin,i));
+
+                cout << "eta analysis, RPC" << endl;
+                cout << effBothRPC << "\t +- \t" << errEffBothRPC << endl;
+                cout << effBPRPC << "\t +- \t" << errEffBPRPC << endl;
+                cout << effNBPRPC << "\t +- \t" << errEffNBPRPC << endl;
+
+                hEff_bothRPC_eta[i-1]->SetBinContent(etaBin,effBothRPC);
+                hEff_bothRPC_eta[i-1]->SetBinError(etaBin,errEffBothRPC);
+                hEff_BPRPC_eta[i-1]->SetBinContent(etaBin,effBPRPC);
+                hEff_BPRPC_eta[i-1]->SetBinError(etaBin,errEffBPRPC);
+                hEff_NBPRPC_eta[i-1]->SetBinContent(etaBin,effNBPRPC);
+                hEff_NBPRPC_eta[i-1]->SetBinError(etaBin,errEffNBPRPC); 
+
+            }
+        }
+        delete totPlaneCountsProj;
+        delete BothPlaneCountsProj;
+        delete BPPlaneCountsProj;
+        delete NBPPlaneCountsProj;
+        //-----//
+        delete totRPCCountsProj;
+        delete BothRPCCountsProj;
+        delete BPRPCCountsProj;
+        delete NBPRPCCountsProj;
+    } //end of if(eta)
+
+    int phiRange = 1;
+
+    bool phi = false;
+    if (phi) {
+
+        int phiAxis;
+
+        if (isPbPb) {
+            phiAxis = 4;
+        }
+        else {
+            phiAxis = 3;
+        }
+        
+        cout << "Analyzing phi with axis (2 for PbPb, 1 for pp): " << phiAxis << endl;
+
+        TH2D* totPlaneCountsProj = hSparseCentFiredTotPerPlane->Projection(0,phiAxis); 
+        TH2D* BothPlaneCountsProj = hSparseCentFiredBothPerPlane->Projection(0,phiAxis);
+        TH2D* BPPlaneCountsProj = hSparseCentFiredBPPerPlane->Projection(0,phiAxis);
+        TH2D* NBPPlaneCountsProj = hSparseCentFiredNBPPerPlane->Projection(0,phiAxis);
+        
+        TH2D* totRPCCountsProj = hSparseCentFiredTotPerRPC->Projection(0,phiAxis); 
+        TH2D* BothRPCCountsProj = hSparseCentFiredBothPerRPC->Projection(0,phiAxis);
+        TH2D* BPRPCCountsProj = hSparseCentFiredBPPerRPC->Projection(0,phiAxis);
+        TH2D* NBPRPCCountsProj = hSparseCentFiredNBPPerRPC->Projection(0,phiAxis);
     
+        //Loop through all the phi bins
+        for (int phiBin = 1; phiBin <= totPlaneCountsProj->GetNbinsX(); phiBin++) {
+            cout << "Analyzing phi, bin: " << phiBin << endl;
+
+            for (int i = 1; i <= nBinsPlane; i++) {
+                effBothPlane = (BothPlaneCountsProj->GetBinContent(phiBin,i)/totPlaneCountsProj->GetBinContent(phiBin,i))*100;
+                effBPPlane = (BPPlaneCountsProj->GetBinContent(phiBin,i)/totPlaneCountsProj->GetBinContent(phiBin,i))*100;
+                effNBPPlane = (NBPPlaneCountsProj->GetBinContent(phiBin,i)/totPlaneCountsProj->GetBinContent(phiBin,i))*100;
+
+                if (std::isnan(effBothPlane)) {
+                    continue;
+                }
+
+                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/totPlaneCountsProj->GetBinContent(phiBin,i));
+                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/totPlaneCountsProj->GetBinContent(phiBin,i));
+                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/totPlaneCountsProj->GetBinContent(phiBin,i));
+
+                cout << effBothPlane << "\t +- \t" << errEffBothPlane << endl;
+                cout << effBPPlane << "\t +- \t" << errEffBPPlane << endl;
+                cout << effNBPPlane << "\t +- \t" << errEffNBPPlane << endl;
+
+                hEff_bothPlanes_phi[i-1]->SetBinContent(phiBin,effBothPlane);
+                hEff_bothPlanes_phi[i-1]->SetBinError(phiBin,errEffBothPlane);
+                hEff_BPPlanes_phi[i-1]->SetBinContent(phiBin,effBPPlane);
+                hEff_BPPlanes_phi[i-1]->SetBinError(phiBin,errEffBPPlane);
+                hEff_NBPPlanes_phi[i-1]->SetBinContent(phiBin,effNBPPlane);
+                hEff_NBPPlanes_phi[i-1]->SetBinError(phiBin,errEffNBPPlane); 
+            }
+            for (int i = 1; i <= nBinsRPC; i++) {
+
+                effBothRPC = (BothRPCCountsProj->GetBinContent(phiBin,i)/totRPCCountsProj->GetBinContent(phiBin,i))*100;
+                effBPRPC = (BPRPCCountsProj->GetBinContent(phiBin,i)/totRPCCountsProj->GetBinContent(phiBin,i))*100;
+                effNBPRPC = (NBPRPCCountsProj->GetBinContent(phiBin,i)/totRPCCountsProj->GetBinContent(phiBin,i))*100;
+
+                if (std::isnan(effBothRPC)) {
+                    continue;
+                }
+
+                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/totRPCCountsProj->GetBinContent(phiBin,i));
+                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/totRPCCountsProj->GetBinContent(phiBin,i));
+                errEffNBPRPC = TMath::Sqrt(effNBPRPC*(100-effNBPRPC)/totRPCCountsProj->GetBinContent(phiBin,i));
+
+                cout << "phi analysis, RPC" << endl;
+                cout << effBothRPC << "\t +- \t" << errEffBothRPC << endl;
+                cout << effBPRPC << "\t +- \t" << errEffBPRPC << endl;
+                cout << effNBPRPC << "\t +- \t" << errEffNBPRPC << endl;
+
+                hEff_bothRPC_phi[i-1]->SetBinContent(phiBin,effBothRPC);
+                hEff_bothRPC_phi[i-1]->SetBinError(phiBin,errEffBothRPC);
+                hEff_BPRPC_phi[i-1]->SetBinContent(phiBin,effBPRPC);
+                hEff_BPRPC_phi[i-1]->SetBinError(phiBin,errEffBPRPC);
+                hEff_NBPRPC_phi[i-1]->SetBinContent(phiBin,effNBPRPC);
+                hEff_NBPRPC_phi[i-1]->SetBinError(phiBin,errEffNBPRPC); 
+
+            }
+        }
+        delete totPlaneCountsProj;
+        delete BothPlaneCountsProj;
+        delete BPPlaneCountsProj;
+        delete NBPPlaneCountsProj;
+        //-----//
+        delete totRPCCountsProj;
+        delete BothRPCCountsProj;
+        delete BPRPCCountsProj;
+        delete NBPRPCCountsProj;
+    } //end of if(phi)
+
+    TCanvas *cEffBPPlane = new TCanvas(); //BP
+    cEffBPPlane->cd();
+    if (centrality) {
+        hEffBPPlane_centr->Draw("nostack pfc");
+        lCentrality->Draw("SAME");
+    }
     else {
-        TH1F *hFiredBothPlanesPlane = (TH1F*)d->Get("nFiredBothperPlane");
-        TH1F *hFiredBPPlane= (TH1F*)d->Get("nFiredBPperPlane");
-        TH1F *hFiredNBPPlane = (TH1F*)d->Get("nFiredNBPperPlane");
-        TH1F *hTotPlane = (TH1F*)d->Get("nTotperPlane");
+        hEffPlane_BP->SetStats(0);
+        hEffPlane_BP->GetXaxis()->SetTitle("Plane");
+        hEffPlane_BP->GetYaxis()->SetTitle("Efficiency [%]");
+        hEffPlane_BP->GetYaxis()->SetRangeUser(0,100);
+        hEffPlane_BP->Draw("HISTO");
+    }
 
-        for (int i = 1; i <= nBinsPlane; i++) {
-            //effBothPlane = (hFiredBothPlanesPlane->GetBinContent(i)/hTotPlane->GetBinContent(i))*100;
-            effBPPlane = (hFiredBPPlane->GetBinContent(i)/hTotPlane->GetBinContent(i))*100;
-            //effNBPPlane = (hFiredNBPPlane->GetBinContent(i)/hTotPlane->GetBinContent(i))*100;
+    //Eff per plane at different centralities
+    TCanvas *cEffBothPlane_cent[4];
+    TCanvas *cEffBPPlane_cent[4];
+    TCanvas *cEffNBPPlane_cent[4];
 
-            //errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlane->GetBinContent(i));
-            errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlane->GetBinContent(i));
-            //errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlane->GetBinContent(i));
+    TCanvas *cEffBothPlane_pt[4];
+    TCanvas *cEffBPPlane_pt[4];
+    TCanvas *cEffNBPPlane_pt[4];
 
-            //hEffPlane_both->SetBinContent(i,effBothPlane);
-            //hEffPlane_both->SetBinError(i,errEffBothPlane);
-            hEffPlane_BP->SetBinContent(i,effBPPlane);
-            hEffPlane_BP->SetBinError(i,errEffBPPlane);
-            //hEffPlane_NBP->SetBinContent(i,effNBPPlane);
-            //hEffPlane_NBP->SetBinError(i,errEffNBPPlane);
+    TCanvas *cEffBothPlane_eta[4];
+    TCanvas *cEffBPPlane_eta[4];
+    TCanvas *cEffNBPPlane_eta[4];
+
+    TCanvas *cEffBothPlane_phi[4];
+    TCanvas *cEffBPPlane_phi[4];
+    TCanvas *cEffNBPPlane_phi[4];
+
+    //Eff per RPC at different centralities
+    TCanvas *cEffBothRPC_cent[72];
+    TCanvas *cEffBPRPC_cent[72];
+    TCanvas *cEffNBPRPC_cent[72];
+
+    TCanvas *cEffBothRPC_pt[72];
+    TCanvas *cEffBPRPC_pt[72];
+    TCanvas *cEffNBPRPC_pt[72];
+
+    TCanvas *cEffBothRPC_eta[72];
+    TCanvas *cEffBPRPC_eta[72];
+    TCanvas *cEffNBPRPC_eta[72];
+
+    TCanvas *cEffBothRPC_phi[72];
+    TCanvas *cEffBPRPC_phi[72];
+    TCanvas *cEffNBPRPC_phi[72];
+
+    //Per plane
+    //Eff vs centrality
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffBothPlane_cent[i] = new TCanvas();
+        cEffBPPlane_cent[i] = new TCanvas();
+        cEffNBPPlane_cent[i] = new TCanvas();
+
+        cEffBothPlane_cent[i]->cd();
+        cEffBothPlane_cent[i]->SetGridx();
+        cEffBothPlane_cent[i]->SetGridy();
+        hEff_bothPlanes_cent[i]->SetStats(0);
+        hEff_bothPlanes_cent[i]->GetXaxis()->SetTitle("FT0C [%]");
+        hEff_bothPlanes_cent[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothPlanes_cent[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothPlanes_cent[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothPlanes_cent[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothPlanes_cent[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothPlanes_cent[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothPlanes_cent[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothPlanes_cent[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothPlanes_cent[i]->SetLineColor(kBlack);
+        hEff_bothPlanes_cent[i]->SetLineWidth(2);
+        hEff_bothPlanes_cent[i]->Draw("E");
+
+        cEffBPPlane_cent[i]->cd();
+        cEffBPPlane_cent[i]->SetGridx();
+        cEffBPPlane_cent[i]->SetGridy();
+        hEff_BPPlanes_cent[i]->SetStats(0);
+        hEff_BPPlanes_cent[i]->GetXaxis()->SetTitle("FT0C [%]");
+        hEff_BPPlanes_cent[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPPlanes_cent[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPPlanes_cent[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPPlanes_cent[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPPlanes_cent[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPPlanes_cent[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPPlanes_cent[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPPlanes_cent[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPPlanes_cent[i]->SetLineColor(kRed);
+        hEff_BPPlanes_cent[i]->SetLineWidth(2);
+        hEff_BPPlanes_cent[i]->Draw("E");
+
+        cEffNBPPlane_cent[i]->cd();
+        cEffNBPPlane_cent[i]->SetGridx();
+        cEffNBPPlane_cent[i]->SetGridy();
+        hEff_NBPPlanes_cent[i]->SetStats(0);
+        hEff_NBPPlanes_cent[i]->GetXaxis()->SetTitle("FT0C [%]");
+        hEff_NBPPlanes_cent[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPPlanes_cent[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_cent[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_cent[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_cent[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_cent[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPPlanes_cent[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPPlanes_cent[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPPlanes_cent[i]->SetLineColor(kGreen+3);
+        hEff_NBPPlanes_cent[i]->SetLineWidth(2);
+        hEff_NBPPlanes_cent[i]->Draw("E");
+    }
+
+    //Eff vs pt
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffBothPlane_pt[i] = new TCanvas();
+        cEffBPPlane_pt[i] = new TCanvas();
+        cEffNBPPlane_pt[i] = new TCanvas();
+
+        cEffBothPlane_pt[i]->cd();
+        cEffBothPlane_pt[i]->SetGridx();
+        cEffBothPlane_pt[i]->SetGridy();
+        hEff_bothPlanes_pt[i]->SetStats(0);
+        hEff_bothPlanes_pt[i]->GetXaxis()->SetTitle("#it{p}_{T} [GeV/c]");
+        hEff_bothPlanes_pt[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothPlanes_pt[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothPlanes_pt[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothPlanes_pt[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothPlanes_pt[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothPlanes_pt[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothPlanes_pt[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothPlanes_pt[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothPlanes_pt[i]->SetLineColor(kBlack);
+        hEff_bothPlanes_pt[i]->SetLineWidth(2);
+        hEff_bothPlanes_pt[i]->Draw("E");
+
+        cEffBPPlane_pt[i]->cd();
+        cEffBPPlane_pt[i]->SetGridx();
+        cEffBPPlane_pt[i]->SetGridy();
+        hEff_BPPlanes_pt[i]->SetStats(0);
+        hEff_BPPlanes_pt[i]->GetXaxis()->SetTitle("#it{p}_{T} [GeV/c]");
+        hEff_BPPlanes_pt[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPPlanes_pt[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPPlanes_pt[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPPlanes_pt[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPPlanes_pt[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPPlanes_pt[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPPlanes_pt[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPPlanes_pt[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPPlanes_pt[i]->SetLineColor(kRed);
+        hEff_BPPlanes_pt[i]->SetLineWidth(2);
+        hEff_BPPlanes_pt[i]->Draw("E");
+
+        cEffNBPPlane_pt[i]->cd();
+        cEffNBPPlane_pt[i]->SetGridx();
+        cEffNBPPlane_pt[i]->SetGridy();
+        hEff_NBPPlanes_pt[i]->SetStats(0);
+        hEff_NBPPlanes_pt[i]->GetXaxis()->SetTitle("#it{p}_{T} [GeV/c]");
+        hEff_NBPPlanes_pt[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPPlanes_pt[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_pt[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_pt[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_pt[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_pt[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPPlanes_pt[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPPlanes_pt[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPPlanes_pt[i]->SetLineColor(kGreen+3);
+        hEff_NBPPlanes_pt[i]->SetLineWidth(2);
+        hEff_NBPPlanes_pt[i]->Draw("E");
+    }
+
+    //Eff vs eta
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffBothPlane_eta[i] = new TCanvas();
+        cEffBPPlane_eta[i] = new TCanvas();
+        cEffNBPPlane_eta[i] = new TCanvas();
+
+        cEffBothPlane_eta[i]->cd();
+        cEffBothPlane_eta[i]->SetGridx();
+        cEffBothPlane_eta[i]->SetGridy();
+        hEff_bothPlanes_eta[i]->SetStats(0);
+        hEff_bothPlanes_eta[i]->GetXaxis()->SetTitle("#eta");
+        hEff_bothPlanes_eta[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothPlanes_eta[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothPlanes_eta[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothPlanes_eta[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothPlanes_eta[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothPlanes_eta[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothPlanes_eta[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothPlanes_eta[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothPlanes_eta[i]->SetLineColor(kBlack);
+        hEff_bothPlanes_eta[i]->SetLineWidth(2);
+        hEff_bothPlanes_eta[i]->Draw("E");
+
+        cEffBPPlane_eta[i]->cd();
+        cEffBPPlane_eta[i]->SetGridx();
+        cEffBPPlane_eta[i]->SetGridy();
+        hEff_BPPlanes_eta[i]->SetStats(0);
+        hEff_BPPlanes_eta[i]->GetXaxis()->SetTitle("#eta");
+        hEff_BPPlanes_eta[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPPlanes_eta[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPPlanes_eta[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPPlanes_eta[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPPlanes_eta[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPPlanes_eta[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPPlanes_eta[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPPlanes_eta[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPPlanes_eta[i]->SetLineColor(kRed);
+        hEff_BPPlanes_eta[i]->SetLineWidth(2);
+        hEff_BPPlanes_eta[i]->Draw("E");
+
+        cEffNBPPlane_eta[i]->cd();
+        cEffNBPPlane_eta[i]->SetGridx();
+        cEffNBPPlane_eta[i]->SetGridy();
+        hEff_NBPPlanes_eta[i]->SetStats(0);
+        hEff_NBPPlanes_eta[i]->GetXaxis()->SetTitle("#eta");
+        hEff_NBPPlanes_eta[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPPlanes_eta[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_eta[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_eta[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_eta[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_eta[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPPlanes_eta[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPPlanes_eta[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPPlanes_eta[i]->SetLineColor(kGreen+3);
+        hEff_NBPPlanes_eta[i]->SetLineWidth(2);
+        hEff_NBPPlanes_eta[i]->Draw("E");
+    }
+
+    //Eff vs phi
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffBothPlane_phi[i] = new TCanvas();
+        cEffBPPlane_phi[i] = new TCanvas();
+        cEffNBPPlane_phi[i] = new TCanvas();
+
+        cEffBothPlane_phi[i]->cd();
+        cEffBothPlane_phi[i]->SetGridx();
+        cEffBothPlane_phi[i]->SetGridy();
+        hEff_bothPlanes_phi[i]->SetStats(0);
+        hEff_bothPlanes_phi[i]->GetXaxis()->SetTitle("#phi [rad]");
+        hEff_bothPlanes_phi[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothPlanes_phi[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothPlanes_phi[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothPlanes_phi[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothPlanes_phi[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothPlanes_phi[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothPlanes_phi[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothPlanes_phi[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothPlanes_phi[i]->SetLineColor(kBlack);
+        hEff_bothPlanes_phi[i]->SetLineWidth(2);
+        hEff_bothPlanes_phi[i]->Draw("E");
+
+        cEffBPPlane_phi[i]->cd();
+        cEffBPPlane_phi[i]->SetGridx();
+        cEffBPPlane_phi[i]->SetGridy();
+        hEff_BPPlanes_phi[i]->SetStats(0);
+        hEff_BPPlanes_phi[i]->GetXaxis()->SetTitle("phi [rad]");
+        hEff_BPPlanes_phi[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPPlanes_phi[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPPlanes_phi[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPPlanes_phi[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPPlanes_phi[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPPlanes_phi[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPPlanes_phi[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPPlanes_phi[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPPlanes_phi[i]->SetLineColor(kRed);
+        hEff_BPPlanes_phi[i]->SetLineWidth(2);
+        hEff_BPPlanes_phi[i]->Draw("E");
+
+        cEffNBPPlane_phi[i]->cd();
+        cEffNBPPlane_phi[i]->SetGridx();
+        cEffNBPPlane_phi[i]->SetGridy();
+        hEff_NBPPlanes_phi[i]->SetStats(0);
+        hEff_NBPPlanes_phi[i]->GetXaxis()->SetTitle("#phi [rad]");
+        hEff_NBPPlanes_phi[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPPlanes_phi[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_phi[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_phi[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPPlanes_phi[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPPlanes_phi[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPPlanes_phi[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPPlanes_phi[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPPlanes_phi[i]->SetLineColor(kGreen+3);
+        hEff_NBPPlanes_phi[i]->SetLineWidth(2);
+        hEff_NBPPlanes_phi[i]->Draw("E");
+    }
+
+    //Per RPC
+    //Eff vs centrality
+    for (int i = 0; i < nBinsRPC; i++) {
+        cEffBothRPC_cent[i] = new TCanvas();
+        cEffBPRPC_cent[i] = new TCanvas();
+        cEffNBPRPC_cent[i] = new TCanvas();
+
+        cEffBothRPC_cent[i]->cd();
+        cEffBothRPC_cent[i]->SetGridx();
+        cEffBothRPC_cent[i]->SetGridy();
+        hEff_bothRPC_cent[i]->SetStats(0);
+        hEff_bothRPC_cent[i]->GetXaxis()->SetTitle("FT0C [%]");
+        hEff_bothRPC_cent[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothRPC_cent[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothRPC_cent[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothRPC_cent[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothRPC_cent[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothRPC_cent[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothRPC_cent[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothRPC_cent[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothRPC_cent[i]->SetLineColor(kBlack);
+        hEff_bothRPC_cent[i]->SetLineWidth(2);
+        hEff_bothRPC_cent[i]->Draw("E");
+
+        cEffBPRPC_cent[i]->cd();
+        cEffBPRPC_cent[i]->SetGridx();
+        cEffBPRPC_cent[i]->SetGridy();
+        hEff_BPRPC_cent[i]->SetStats(0);
+        hEff_BPRPC_cent[i]->GetXaxis()->SetTitle("FT0C [%]");
+        hEff_BPRPC_cent[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPRPC_cent[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPRPC_cent[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPRPC_cent[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPRPC_cent[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPRPC_cent[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPRPC_cent[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPRPC_cent[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPRPC_cent[i]->SetLineColor(kRed);
+        hEff_BPRPC_cent[i]->SetLineWidth(2);
+        hEff_BPRPC_cent[i]->Draw("E");
+
+        cEffNBPRPC_cent[i]->cd();
+        cEffNBPRPC_cent[i]->SetGridx();
+        cEffNBPRPC_cent[i]->SetGridy();
+        hEff_NBPRPC_cent[i]->SetStats(0);
+        hEff_NBPRPC_cent[i]->GetXaxis()->SetTitle("FT0C [%]");
+        hEff_NBPRPC_cent[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPRPC_cent[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPRPC_cent[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPRPC_cent[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPRPC_cent[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPRPC_cent[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPRPC_cent[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPRPC_cent[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPRPC_cent[i]->SetLineColor(kGreen+3);
+        hEff_NBPRPC_cent[i]->SetLineWidth(2);
+        hEff_NBPRPC_cent[i]->Draw("E");
+    }
+
+    //Eff vs pt
+    for (int i = 0; i < nBinsRPC; i++) {
+        cEffBothRPC_pt[i] = new TCanvas();
+        cEffBPRPC_pt[i] = new TCanvas();
+        cEffNBPRPC_pt[i] = new TCanvas();
+
+        cEffBothRPC_pt[i]->cd();
+        cEffBothRPC_pt[i]->SetGridx();
+        cEffBothRPC_pt[i]->SetGridy();
+        hEff_bothRPC_pt[i]->SetStats(0);
+        hEff_bothRPC_pt[i]->GetXaxis()->SetTitle("#it{p}_{T} [GeV/c]");
+        hEff_bothRPC_pt[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothRPC_pt[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothRPC_pt[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothRPC_pt[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothRPC_pt[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothRPC_pt[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothRPC_pt[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothRPC_pt[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothRPC_pt[i]->SetLineColor(kBlack);
+        hEff_bothRPC_pt[i]->SetLineWidth(2);
+        hEff_bothRPC_pt[i]->Draw("E");
+
+        cEffBPRPC_pt[i]->cd();
+        cEffBPRPC_pt[i]->SetGridx();
+        cEffBPRPC_pt[i]->SetGridy();
+        hEff_BPRPC_pt[i]->SetStats(0);
+        hEff_BPRPC_pt[i]->GetXaxis()->SetTitle("#it{p}_{T} [GeV/c]");
+        hEff_BPRPC_pt[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPRPC_pt[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPRPC_pt[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPRPC_pt[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPRPC_pt[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPRPC_pt[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPRPC_pt[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPRPC_pt[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPRPC_pt[i]->SetLineColor(kRed);
+        hEff_BPRPC_pt[i]->SetLineWidth(2);
+        hEff_BPRPC_pt[i]->Draw("E");
+
+        cEffNBPRPC_pt[i]->cd();
+        cEffNBPRPC_pt[i]->SetGridx();
+        cEffNBPRPC_pt[i]->SetGridy();
+        hEff_NBPRPC_pt[i]->SetStats(0);
+        hEff_NBPRPC_pt[i]->GetXaxis()->SetTitle("#it{p}_{T} [GeV/c]");
+        hEff_NBPRPC_pt[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPRPC_pt[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPRPC_pt[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPRPC_pt[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPRPC_pt[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPRPC_pt[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPRPC_pt[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPRPC_pt[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPRPC_pt[i]->SetLineColor(kGreen+3);
+        hEff_NBPRPC_pt[i]->SetLineWidth(2);
+        hEff_NBPRPC_pt[i]->Draw("E");
+    }
+
+    //Eff vs eta
+    for (int i = 0; i < nBinsRPC; i++) {
+        cEffBothRPC_eta[i] = new TCanvas();
+        cEffBPRPC_eta[i] = new TCanvas();
+        cEffNBPRPC_eta[i] = new TCanvas();
+
+        cEffBothRPC_eta[i]->cd();
+        cEffBothRPC_eta[i]->SetGridx();
+        cEffBothRPC_eta[i]->SetGridy();
+        hEff_bothRPC_eta[i]->SetStats(0);
+        hEff_bothRPC_eta[i]->GetXaxis()->SetTitle("#eta");
+        hEff_bothRPC_eta[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothRPC_eta[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothRPC_eta[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothRPC_eta[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothRPC_eta[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothRPC_eta[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothRPC_eta[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothRPC_eta[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothRPC_eta[i]->SetLineColor(kBlack);
+        hEff_bothRPC_eta[i]->SetLineWidth(2);
+        hEff_bothRPC_eta[i]->Draw("E");
+
+        cEffBPRPC_eta[i]->cd();
+        cEffBPRPC_eta[i]->SetGridx();
+        cEffBPRPC_eta[i]->SetGridy();
+        hEff_BPRPC_eta[i]->SetStats(0);
+        hEff_BPRPC_eta[i]->GetXaxis()->SetTitle("#eta");
+        hEff_BPRPC_eta[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPRPC_eta[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPRPC_eta[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPRPC_eta[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPRPC_eta[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPRPC_eta[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPRPC_eta[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPRPC_eta[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPRPC_eta[i]->SetLineColor(kRed);
+        hEff_BPRPC_eta[i]->SetLineWidth(2);
+        hEff_BPRPC_eta[i]->Draw("E");
+
+        cEffNBPRPC_eta[i]->cd();
+        cEffNBPRPC_eta[i]->SetGridx();
+        cEffNBPRPC_eta[i]->SetGridy();
+        hEff_NBPRPC_eta[i]->SetStats(0);
+        hEff_NBPRPC_eta[i]->GetXaxis()->SetTitle("#eta");
+        hEff_NBPRPC_eta[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPRPC_eta[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPRPC_eta[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPRPC_eta[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPRPC_eta[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPRPC_eta[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPRPC_eta[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPRPC_eta[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPRPC_eta[i]->SetLineColor(kGreen+3);
+        hEff_NBPRPC_eta[i]->SetLineWidth(2);
+        hEff_NBPRPC_eta[i]->Draw("E");
+    }
+
+    //Eff vs phi
+    for (int i = 0; i < nBinsRPC; i++) {
+        cEffBothRPC_phi[i] = new TCanvas();
+        cEffBPRPC_phi[i] = new TCanvas();
+        cEffNBPRPC_phi[i] = new TCanvas();
+
+        cEffBothRPC_phi[i]->cd();
+        cEffBothRPC_phi[i]->SetGridx();
+        cEffBothRPC_phi[i]->SetGridy();
+        hEff_bothRPC_phi[i]->SetStats(0);
+        hEff_bothRPC_phi[i]->GetXaxis()->SetTitle("#phi [rad]");
+        hEff_bothRPC_phi[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_bothRPC_phi[i]->GetXaxis()->SetTitleFont(62);
+        hEff_bothRPC_phi[i]->GetXaxis()->SetLabelFont(62);
+        hEff_bothRPC_phi[i]->GetYaxis()->SetTitleFont(62);
+        hEff_bothRPC_phi[i]->GetYaxis()->SetLabelFont(62);
+        hEff_bothRPC_phi[i]->GetXaxis()->CenterTitle(true);
+        hEff_bothRPC_phi[i]->GetYaxis()->CenterTitle(true);
+        hEff_bothRPC_phi[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_bothRPC_phi[i]->SetLineColor(kBlack);
+        hEff_bothRPC_phi[i]->SetLineWidth(2);
+        hEff_bothRPC_phi[i]->Draw("E");
+
+        cEffBPRPC_phi[i]->cd();
+        cEffBPRPC_phi[i]->SetGridx();
+        cEffBPRPC_phi[i]->SetGridy();
+        hEff_BPRPC_phi[i]->SetStats(0);
+        hEff_BPRPC_phi[i]->GetXaxis()->SetTitle("phi [rad]");
+        hEff_BPRPC_phi[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_BPRPC_phi[i]->GetXaxis()->SetTitleFont(62);
+        hEff_BPRPC_phi[i]->GetXaxis()->SetLabelFont(62);
+        hEff_BPRPC_phi[i]->GetYaxis()->SetTitleFont(62);
+        hEff_BPRPC_phi[i]->GetYaxis()->SetLabelFont(62);
+        hEff_BPRPC_phi[i]->GetXaxis()->CenterTitle(true);
+        hEff_BPRPC_phi[i]->GetYaxis()->CenterTitle(true);
+        hEff_BPRPC_phi[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_BPRPC_phi[i]->SetLineColor(kRed);
+        hEff_BPRPC_phi[i]->SetLineWidth(2);
+        hEff_BPRPC_phi[i]->Draw("E");
+
+        cEffNBPRPC_phi[i]->cd();
+        cEffNBPRPC_phi[i]->SetGridx();
+        cEffNBPRPC_phi[i]->SetGridy();
+        hEff_NBPRPC_phi[i]->SetStats(0);
+        hEff_NBPRPC_phi[i]->GetXaxis()->SetTitle("#phi [rad]");
+        hEff_NBPRPC_phi[i]->GetYaxis()->SetTitle("Efficiency [%]");
+        hEff_NBPRPC_phi[i]->GetXaxis()->SetTitleFont(62);
+        hEff_NBPRPC_phi[i]->GetXaxis()->SetLabelFont(62);
+        hEff_NBPRPC_phi[i]->GetYaxis()->SetTitleFont(62);
+        hEff_NBPRPC_phi[i]->GetYaxis()->SetLabelFont(62);
+        hEff_NBPRPC_phi[i]->GetXaxis()->CenterTitle(true);
+        hEff_NBPRPC_phi[i]->GetYaxis()->CenterTitle(true);
+        hEff_NBPRPC_phi[i]->GetYaxis()->SetRangeUser(80,100);
+        hEff_NBPRPC_phi[i]->SetLineColor(kGreen+3);
+        hEff_NBPRPC_phi[i]->SetLineWidth(2);
+        hEff_NBPRPC_phi[i]->Draw("E");
+    }
+
+    bool write = true;
+    if(write) {
+        
+        TFile *fOutTot;
+        
+        if (centralityCut == true && ptCut == false) {
+            fOutTot = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outEffAll_" + period + "_centCut.root").c_str(),"RECREATE");
+        }
+        else if (centralityCut == false && ptCut == true) {
+            fOutTot = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outEffAll_" + period + "_ptCut.root").c_str(),"RECREATE");
+        }
+        else if (centralityCut == true && ptCut == true) {
+            fOutTot = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outEffAll_" + period + "_pt_cent_cut.root").c_str(),"RECREATE");
+        }
+        else if (centralityCut == false && ptCut == false) {
+            fOutTot = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outEffAll_" + period + "_noCuts.root").c_str(),"RECREATE");
+        }
+        
+        
+        fOutTot->cd();
+
+        for (int i = 0; i < nBinsPlane; i++) {
+
+            cEffBothPlane_cent[i] ->Write(("eff_bothPlanes_Plane" + to_string(i) + "_vs_cent").c_str());
+            cEffBPPlane_cent[i] ->Write(("eff_BP_Plane" + to_string(i) + "_vs_cent").c_str());
+            cEffNBPPlane_cent[i] ->Write(("eff_NBP_Plane" + to_string(i) + "_vs_cent").c_str());
+
+            cEffBothPlane_pt[i] ->Write(("eff_bothPlanes_Plane" + to_string(i) + "_vs_pt").c_str());
+            cEffBPPlane_pt[i] ->Write(("eff_BP_Plane" + to_string(i) + "_vs_pt").c_str());
+            cEffNBPPlane_pt[i] ->Write(("eff_NBP_Plane" + to_string(i) + "_vs_pt").c_str());
+
+            cEffBothPlane_eta[i] ->Write(("eff_bothPlanes_Plane" + to_string(i) + "_vs_eta").c_str());
+            cEffBPPlane_eta[i] ->Write(("eff_BP_Plane" + to_string(i) + "_vs_eta").c_str());
+            cEffNBPPlane_eta[i] ->Write(("eff_NBP_Plane" + to_string(i) + "_vs_eta").c_str());
+
+            cEffBothPlane_phi[i] ->Write(("eff_bothPlanes_Plane" + to_string(i) + "_vs_phi").c_str());
+            cEffBPPlane_phi[i] ->Write(("eff_BP_Plane" + to_string(i) + "_vs_phi").c_str());
+            cEffNBPPlane_phi[i] ->Write(("eff_NBP_Plane" + to_string(i) + "_vs_phi").c_str());
         }
 
+        for (int i = 0; i < nBinsRPC; i++) {
+
+            cEffBothRPC_cent[i] ->Write(("eff_bothPlanes_RPC" + to_string(i) + "_vs_cent").c_str());
+            cEffBPRPC_cent[i] ->Write(("eff_BP_RPC" + to_string(i) + "_vs_cent").c_str());
+            cEffNBPRPC_cent[i] ->Write(("eff_NBP_RPC" + to_string(i) + "_vs_cent").c_str());
+
+            cEffBothRPC_pt[i] ->Write(("eff_bothPlanes_RPC" + to_string(i) + "_vs_pt").c_str());
+            cEffBPRPC_pt[i] ->Write(("eff_BP_RPC" + to_string(i) + "_vs_pt").c_str());
+            cEffNBPRPC_pt[i] ->Write(("eff_NBP_RPC" + to_string(i) + "_vs_pt").c_str());
+
+            cEffBothRPC_eta[i] ->Write(("eff_bothPlanes_RPC" + to_string(i) + "_vs_eta").c_str());
+            cEffBPRPC_eta[i] ->Write(("eff_BP_RPC" + to_string(i) + "_vs_eta").c_str());
+            cEffNBPRPC_eta[i] ->Write(("eff_NBP_RPC" + to_string(i) + "_vs_eta").c_str());
+
+            cEffBothRPC_phi[i] ->Write(("eff_bothPlanes_RPC" + to_string(i) + "_vs_phi").c_str());
+            cEffBPRPC_phi[i] ->Write(("eff_BP_RPC" + to_string(i) + "_vs_phi").c_str());
+            cEffNBPRPC_phi[i] ->Write(("eff_NBP_RPC" + to_string(i) + "_vs_phi").c_str());
+        }
+
+        fOutTot->Close();
     }
+
+    bool save = true;
+    
+    if (save) {
+        for (int i = 0; i < nBinsPlane; i++) {
+
+            if (ptCut) {
+                //centrality
+                if (centrality) {
+                    cEffBothPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_cent_pTcut.png").c_str());
+                    cEffBPPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_cent_pTcut.png").c_str());
+                    cEffNBPPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_cent_pTcut.png").c_str());
+                }
+                //pt
+                if (pt) {
+                    cEffBothPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_pt_pTcut.png").c_str());
+                    cEffBPPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_pt_pTcut.png").c_str());
+                    cEffNBPPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_pt_pTcut.png").c_str());
+                }
+                //eta
+                if (eta) {
+                    cEffBothPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_eta_pTcut.png").c_str());
+                    cEffBPPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_eta_pTcut.png").c_str());
+                    cEffNBPPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_eta_pTcut.png").c_str());
+                }
+                //phi
+                if (phi) {
+                    cEffBothPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_phi_pTcut.png").c_str());
+                    cEffBPPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_phi_pTcut.png").c_str());
+                    cEffNBPPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_phi_pTcut.png").c_str());
+                }
+            }
+
+            if (ptCut && centralityCut) {
+                //centrality
+                if (centrality) {
+                    cEffBothPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_cent_pT_cent_cut.png").c_str());
+                    cEffBPPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_cent_pT_cent_cut.png").c_str());
+                    cEffNBPPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_cent_pT_cent_cut.png").c_str());
+                }
+                //pt
+                if (pt) {
+                    cEffBothPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_pt_pT_cent_cut.png").c_str());
+                    cEffBPPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_pt_pT_cent_cut.png").c_str());
+                    cEffNBPPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_pt_pT_cent_cut.png").c_str());
+                }
+                //eta
+                if (eta) {
+                    cEffBothPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_eta_pT_cent_cut.png").c_str());
+                    cEffBPPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_eta_pT_cent_cut.png").c_str());
+                    cEffNBPPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_eta_pT_cent_cut.png").c_str());
+                }
+                //phi
+                if (phi) {
+                    cEffBothPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_phi_pT_cent_cut.png").c_str());
+                    cEffBPPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_phi_pT_cent_cut.png").c_str());
+                    cEffNBPPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_phi_pT_cent_cut.png").c_str());
+                }
+            }
+        
+            else {
+                //centrality
+                if (centrality) {
+                    cEffBothPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_cent.png").c_str());
+                    cEffBPPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_cent.png").c_str());
+                    cEffNBPPlane_cent[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_cent.png").c_str());
+                }
+                //pt
+                if (pt) {
+                    cEffBothPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_pt.png").c_str());
+                    cEffBPPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_pt.png").c_str());
+                    cEffNBPPlane_pt[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_pt.png").c_str());
+                }
+                //eta
+                if (eta) {
+                    cEffBothPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_eta.png").c_str());
+                    cEffBPPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_eta.png").c_str());
+                    cEffNBPPlane_eta[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_eta.png").c_str());
+                }
+                //phi
+                if (phi) {
+                    cEffBothPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_bothPlanes_phi.png").c_str());
+                    cEffBPPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_BP_planes_phi.png").c_str());
+                    cEffNBPPlane_phi[i]->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/"+planeName[i]+"_NBP_planes_phi.png").c_str());
+                }
+            } //end of else on ptcut
+        }
+    }
+    
+    
+    //---------------------//
 
     //THnSparseD* my_thn = (THnSparseD*) _file0->Get("thn_name"); 
     //root [2] my_thn->GetAxis(6)->SetRange(1,1); 
@@ -363,20 +1552,6 @@ void calculateEfficiencyCentrality() {
     hEffPlane_both->GetYaxis()->SetTitle("Efficiency [%]");
     hEffPlane_both->GetYaxis()->SetRangeUser(0,100);
     hEffPlane_both->Draw("P");*/
-
-    TCanvas *cEffBPPlane = new TCanvas(); //BP
-    cEffBPPlane->cd();
-    if (centrality) {
-        hEffBPPlane_centr->Draw("nostack pfc");
-    }
-    else {
-        hEffPlane_BP->SetStats(0);
-        hEffPlane_BP->GetXaxis()->SetTitle("Plane");
-        hEffPlane_BP->GetYaxis()->SetTitle("Efficiency [%]");
-        hEffPlane_BP->GetYaxis()->SetRangeUser(0,100);
-        hEffPlane_BP->Draw("HISTO");
-    }
-    
 
     /*TCanvas *cEffNBPPlane = new TCanvas(); //NBP
     cEffNBPPlane->cd();

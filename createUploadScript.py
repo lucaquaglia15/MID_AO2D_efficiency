@@ -18,7 +18,8 @@ def main():
     #period = "LHC23_PbPb_pass4"
     #period = "LHC24_pass1_skimmed"
     #period = "LHC25ae_pass2"
-    period = "LHC24_ppref_pass1"
+    #period = "LHC24_ppref_pass1"
+    period = "LHC25ad_pass2"
 
     globalPath = "/media/luca/Extreme SSD/MIDefficieincy/"+period+"/" #Where txt file with star/end of run is stored
 
@@ -111,7 +112,7 @@ def main():
             #print("For runs",file[1],file[2]," the start time is",s," and the time is",e)
             outFile.write("o2-ccdb-upload --host \"$ccdbhost\" -p MID/Calib/ChamberEfficiency -f o2-mid-ChEffCounter_" + str(run1) + "_" + str(run2) + 
                         ".root -k ccdb-object --starttimestamp " + str(s-120000) + " --endtimestamp " + str(e+120000) + " -m \"runNumber=" + str(run1) + "-" + str(run2) +
-                        ";JIRA=O2-6423;adjustableEOV=true;Created=" + str(endTimes[-1] + 1000) + "\"\n")
+                        ";JIRA=O2-6436;adjustableEOV=true;Created=" + str(endTimes[-1] + 1000) + "\"\n")
 
     #Flush content to file and close it
     outFile.flush()

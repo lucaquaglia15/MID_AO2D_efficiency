@@ -5,6 +5,7 @@
 #include "TGraphErrors.h"
 #include "TLine.h"
 #include "TBox.h"
+#include "TEfficiency.h"
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
 #include "MIDBase/DetectorParameters.h" //Detector parameter
@@ -35,8 +36,8 @@ void printEff() {
     //string period = "LHC25ae_pass2";
     //string period = "LHC24_ppref_pass1"; //pp ref 2024
 
-    //int trackGoal = 0;
-    int trackGoal = 300000000;
+    int trackGoal = 0;
+    //int trackGoal = 300000000;
 
     //Crate sub-folder "merged" within period subfolder
 	string fol = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/" + period + "/ccdb/merged/";
@@ -138,10 +139,20 @@ void printEff() {
 
             if  (v->at(i).getCounts(o2::mid::EffCountType::AllTracks) != 0) {
                 
+                //With TEfficiency class root
+                /*double eff = (double)nBend / nAll;
+                double effLow = TEfficiency::ClopperPearson(nAll, nBend, 0.6827, false);
+                double effUp  = TEfficiency::ClopperPearson(nAll, nBend, 0.6827, true);
+
+                double errLow = eff - effLow;
+                double errUp  = effUp - eff;*/
+
                 BPeff = (v->at(i).getCounts(o2::mid::EffCountType::BendPlane)/(float)v->at(i).getCounts(o2::mid::EffCountType::AllTracks))*100;
                 errBPeff = TMath::Sqrt((BPeff*(100-BPeff))/(v->at(i).getCounts(o2::mid::EffCountType::AllTracks)));
+                
                 NBPeff = (v->at(i).getCounts(o2::mid::EffCountType::NonBendPlane)/(float)v->at(i).getCounts(o2::mid::EffCountType::AllTracks))*100;
                 errNBPeff = TMath::Sqrt((NBPeff*(100-NBPeff))/(v->at(i).getCounts(o2::mid::EffCountType::AllTracks)));
+                
                 Botheff = (v->at(i).getCounts(o2::mid::EffCountType::BothPlanes)/(float)v->at(i).getCounts(o2::mid::EffCountType::AllTracks))*100; 
                 errBotheff = TMath::Sqrt((Botheff*(100-Botheff))/(v->at(i).getCounts(o2::mid::EffCountType::AllTracks)));
 

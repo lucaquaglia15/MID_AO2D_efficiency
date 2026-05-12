@@ -110,14 +110,34 @@ void plotEfficiency() { //Main function
     string period_LHC23_PbPb_pass4 = "LHC23_PbPb_pass4";
     string period_LHC24_pass1_skimmed = "LHC24_pass1_skimmed";
     string period_LHC24_PbPb_pass1 = "LHC24_PbPb_pass1";
+    string period_LHC25ad_pass2 = "LHC25ad_pass2";
+    string period_LHC25ae_pass1 = "LHC25ae_pass1";
+    string period_LHC25ae_pass2 = "LHC25ae_pass2";
+    string period_LHC25af_pass2 = "LHC25af_pass2";
 
-    vector<string> vPeriods = {"DQ_LHC23_PbPb_pass4_muon","LHC22o_pass7_minBias","LHC22_pass7_skimmed","LHC23_pass4_skimmed","LHC23_PbPb_pass3_I-A11","LHC23_PbPb_pass4","LHC24_pass1_skimmed","LHC24_PbPb_pass1"};
+    bool ptCut = true; //If true, a pt cut is also applied in the computation of the efficiency vs eta
 
-    vector<bool> isAnalyzed = {0,0,1,1,0,1,1,0};
+    vector<string> vPeriods = {"DQ_LHC23_PbPb_pass4_muon",
+        "LHC22o_pass7_minBias",
+        "LHC22_pass7_skimmed",
+        "LHC23_pass4_skimmed",
+        "LHC23_PbPb_pass3_I-A11",
+        "LHC23_PbPb_pass4",
+        "LHC24_pass1_skimmed",
+        "LHC24_PbPb_pass1",
+        "LHC25ad_pass2",
+        "LHC25ae_pass1",
+        "LHC25ae_pass2",
+        "LHC25af_pass2"
+    };
+
+    vector<bool> isAnalyzed = {0,0,0,0,0,0,0,0,1,1,0,1};
+    vector<bool> isPbPb = {true,false,false,false,true,true,false,true,false,false,false,false};
+    vector<bool> isAnalyzedPbPb;
 
     //vector<int> markerStyle = {89,90,91,92,93,94,95,96};
     //vector<int> markerStyle = {71,72,73,74,75,76,77,78};
-    vector<int> markerStyle = {53,54,55,56,57,58,59,60};
+    vector<int> markerStyle = {53,54,55,56,57,58,59,60,61,62,63,64};
     
     //Each element of this vector is a plane
     vector<TMultiGraph*> mEffPlaneBoth, mEffPlaneBP, mEffPlaneNBP;
@@ -143,6 +163,7 @@ void plotEfficiency() { //Main function
     for (unsigned int i = 0; i < vPeriods.size(); i++) {
         if (isAnalyzed.at(i)) {
             analyzedPeriod.push_back(vPeriods.at(i));
+            isAnalyzedPbPb.push_back(isPbPb.at(i));
         }
     }
 
@@ -189,26 +210,73 @@ void plotEfficiency() { //Main function
             TDirectoryFile *d = (TDirectoryFile*)fRun->Get("mid-efficiency");
 
             //Histo of counts per plane
-            TH1F *hFiredBoth_Planes = (TH1F*)d->Get("nFiredBothperPlane");
-            TH1F *hFiredBP_Planes = (TH1F*)d->Get("nFiredBPperPlane");
-            TH1F *hFiredNBP_Planes = (TH1F*)d->Get("nFiredNBPperPlane");
-            TH1F *hTotPlanes = (TH1F*)d->Get("nTotperPlane");    
+            //TH1F *hFiredBoth_Planes = (TH1F*)d->Get("nFiredBothperPlane");
+            //TH1F *hFiredBP_Planes = (TH1F*)d->Get("nFiredBPperPlane");
+            //TH1F *hFiredNBP_Planes = (TH1F*)d->Get("nFiredNBPperPlane");
+            //TH1F *hTotPlanes = (TH1F*)d->Get("nTotperPlane");    
             //Histo of counts per RPC
-            TH1F *hFiredBoth_RPC = (TH1F*)d->Get("nFiredBothperRPC");
-            TH1F *hFiredBP_RPC = (TH1F*)d->Get("nFiredBPperRPC");
-            TH1F *hFiredNBP_RPC = (TH1F*)d->Get("nFiredNBPperRPC");
-            TH1F *hTotRPC = (TH1F*)d->Get("nTotperRPC"); 
+            //TH1F *hFiredBoth_RPC = (TH1F*)d->Get("nFiredBothperRPC");
+            //TH1F *hFiredBP_RPC = (TH1F*)d->Get("nFiredBPperRPC");
+            //TH1F *hFiredNBP_RPC = (TH1F*)d->Get("nFiredNBPperRPC");
+            //TH1F *hTotRPC = (TH1F*)d->Get("nTotperRPC"); 
+
+            //Get plane THNsparses once and for all to be used later on
+            THnSparse *hSparseCentFiredTotPerPlane = (THnSparse*)d->Get("hSparseCentFiredTotperPlane");
+            THnSparse *hSparseCentFiredBothPerPlane = (THnSparse*)d->Get("hSparseCentFiredBothperPlane");
+            THnSparse *hSparseCentFiredBPPerPlane = (THnSparse*)d->Get("hSparseCentFiredBPperPlane");
+            THnSparse *hSparseCentFiredNBPPerPlane = (THnSparse*)d->Get("hSparseCentFiredNBPperPlane");
+
+            THnSparse *hSparseCentFiredTotPerRPC = (THnSparse*)d->Get("hSparseCentFiredTotperRPC");
+            THnSparse *hSparseCentFiredBothPerRPC = (THnSparse*)d->Get("hSparseCentFiredBothperRPC");
+            THnSparse *hSparseCentFiredBPPerRPC = (THnSparse*)d->Get("hSparseCentFiredBPperRPC");
+            THnSparse *hSparseCentFiredNBPPerRPC = (THnSparse*)d->Get("hSparseCentFiredNBPperRPC");
+
+            //Add a cut in pt in the efficiency computation (pt > 2 GeV/c)
+            if (ptCut) {
+
+                int ptAxis;
+
+                if (isAnalyzedPbPb.at(per) == true) {
+                    ptAxis = 2;
+                }
+                else {
+                    ptAxis = 1;
+                }
+                
+                //cout << "Cutting on pt axis (2 for PbPb, 1 for pp): " << ptAxis << endl;
+                
+                hSparseCentFiredTotPerPlane->GetAxis(ptAxis)->SetRange(15,150);
+                hSparseCentFiredBothPerPlane->GetAxis(ptAxis)->SetRange(15,150);
+                hSparseCentFiredBPPerPlane->GetAxis(ptAxis)->SetRange(15,150);
+                hSparseCentFiredNBPPerPlane->GetAxis(ptAxis)->SetRange(15,150);
+
+                hSparseCentFiredTotPerRPC->GetAxis(ptAxis)->SetRange(15,150);
+                hSparseCentFiredBothPerRPC->GetAxis(ptAxis)->SetRange(15,150);
+                hSparseCentFiredBPPerRPC->GetAxis(ptAxis)->SetRange(15,150);
+                hSparseCentFiredNBPPerRPC->GetAxis(ptAxis)->SetRange(15,150);
+            }
+
+            //Project THNsparse
+            TH1D* totPlaneCountsProj = hSparseCentFiredTotPerPlane->Projection(0); 
+            TH1D* BothPlaneCountsProj = hSparseCentFiredBothPerPlane->Projection(0);
+            TH1D* BPPlaneCountsProj = hSparseCentFiredBPPerPlane->Projection(0);
+            TH1D* NBPPlaneCountsProj = hSparseCentFiredNBPPerPlane->Projection(0);
+            
+            TH1D* totRPCCountsProj = hSparseCentFiredTotPerRPC->Projection(0); 
+            TH1D* BothRPCCountsProj = hSparseCentFiredBothPerRPC->Projection(0);
+            TH1D* BPRPCCountsProj = hSparseCentFiredBPPerRPC->Projection(0);
+            TH1D* NBPRPCCountsProj = hSparseCentFiredNBPPerRPC->Projection(0);
 
             //Calculate eff per run per plane
             for (int i = 1; i <= nBinsPlane; i++) {
 
-                effBothPlane = (hFiredBoth_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-                effBPPlane = (hFiredBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
-                effNBPPlane = (hFiredNBP_Planes->GetBinContent(i)/hTotPlanes->GetBinContent(i))*100;
+                effBothPlane = (BothPlaneCountsProj->GetBinContent(i)/totPlaneCountsProj->GetBinContent(i))*100;
+                effBPPlane = (BPPlaneCountsProj->GetBinContent(i)/totPlaneCountsProj->GetBinContent(i))*100;
+                effNBPPlane = (NBPPlaneCountsProj->GetBinContent(i)/totPlaneCountsProj->GetBinContent(i))*100;
 
-                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/hTotPlanes->GetBinContent(i));
-                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/hTotPlanes->GetBinContent(i));
-                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/hTotPlanes->GetBinContent(i));
+                errEffBothPlane = TMath::Sqrt(effBothPlane*(100-effBothPlane)/totPlaneCountsProj->GetBinContent(i));
+                errEffBPPlane = TMath::Sqrt(effBPPlane*(100-effBPPlane)/totPlaneCountsProj->GetBinContent(i));
+                errEffNBPPlane = TMath::Sqrt(effNBPPlane*(100-effNBPPlane)/totPlaneCountsProj->GetBinContent(i));
 
                 //Fill vector for efficiency per LB in the run
                 vEffBoth_Planes.push_back(effBothPlane);
@@ -225,13 +293,13 @@ void plotEfficiency() { //Main function
             //Calculate eff per run per RPC
             for (int i = 1; i <= nBinsRPC; i++) {
 
-                effBothRPC = (hFiredBoth_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
-                effBPRPC = (hFiredBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
-                effNBPPRPC = (hFiredNBP_RPC->GetBinContent(i)/hTotRPC->GetBinContent(i))*100;
+                effBothRPC = (BothRPCCountsProj->GetBinContent(i)/totRPCCountsProj->GetBinContent(i))*100;
+                effBPRPC = (BPRPCCountsProj->GetBinContent(i)/totRPCCountsProj->GetBinContent(i))*100;
+                effNBPPRPC = (NBPRPCCountsProj->GetBinContent(i)/totRPCCountsProj->GetBinContent(i))*100;
 
-                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/hTotRPC->GetBinContent(i));
-                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/hTotRPC->GetBinContent(i));
-                errEffNBPRPC = TMath::Sqrt(effNBPPRPC*(100-effNBPPRPC)/hTotRPC->GetBinContent(i));
+                errEffBothRPC = TMath::Sqrt(effBothRPC*(100-effBothRPC)/totRPCCountsProj->GetBinContent(i));
+                errEffBPRPC = TMath::Sqrt(effBPRPC*(100-effBPRPC)/totRPCCountsProj->GetBinContent(i));
+                errEffNBPRPC = TMath::Sqrt(effNBPPRPC*(100-effNBPPRPC)/totRPCCountsProj->GetBinContent(i));
 
                 //Fill vector for efficiency per LB in the run
                 vEffBoth_RPC.push_back(effBothRPC);
@@ -282,6 +350,27 @@ void plotEfficiency() { //Main function
             vErrEffBoth_RPC.clear();
             vErrEffBP_RPC.clear();
             vErrEffNBP_RPC.clear();
+
+            delete totPlaneCountsProj;
+            delete BothPlaneCountsProj;
+            delete BPPlaneCountsProj;
+            delete NBPPlaneCountsProj;
+            //-----//
+            delete totRPCCountsProj;
+            delete BothRPCCountsProj;
+            delete BPRPCCountsProj;
+            delete NBPRPCCountsProj; 
+
+            //-----//
+            delete hSparseCentFiredTotPerPlane;
+            delete hSparseCentFiredBothPerPlane;
+            delete hSparseCentFiredBPPerPlane;
+            delete hSparseCentFiredNBPPerPlane;
+
+            delete hSparseCentFiredTotPerRPC; 
+            delete hSparseCentFiredBothPerRPC;
+            delete hSparseCentFiredBPPerRPC; 
+            delete hSparseCentFiredNBPPerRPC;
 
         } //End of loop on all runs in a given period
 
@@ -580,7 +669,6 @@ void plotEfficiency() { //Main function
             vErrEffPerPlanePerRunBP[i].clear();
             vErrEffPerPlanePerRunNBP[i].clear();
         }
-
     } //End of loop on all periods
     
     //cout << vEffPerPlanePerRunBoth_PbPb[0].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[1].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[2].size() << "\t" << vEffPerPlanePerRunBoth_PbPb[3].size() << endl;
@@ -720,6 +808,31 @@ void plotEfficiency() { //Main function
 
         lAllAnalyzedPeriodsNBP->Draw("SAME");
     }
+
+    TFile *fOutTot;
+    string nameOutFile = "";
+
+    for (unsigned int iRun = 0; iRun < analyzedPeriod.size(); iRun++) {
+        nameOutFile = nameOutFile + analyzedPeriod.at(iRun) +"_";
+    }
+
+    if (ptCut == true) {
+
+        fOutTot = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outEffAll_" + nameOutFile + "ptCut.root").c_str(),"RECREATE");
+    }
+    else if (ptCut == false) {
+        fOutTot = new TFile(("/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/outEffAll_" + nameOutFile + "noCut.root").c_str(),"RECREATE");
+    }
+        
+    fOutTot->cd();
+    for (int i = 0; i < nBinsPlane; i++) {
+        cEffPerPlaneBoth[i]->Write(("efficiencyTrend_perPlane_" + planeName[i] + "_bothPlanes").c_str());
+        cEffPerPlaneBP[i]->Write(("efficiencyTrend_perPlane_" + planeName[i] + "_BP").c_str());
+        cEffPerPlaneNBP[i]->Write(("efficiencyTrend_perPlane_" + planeName[i] + "_NBP").c_str());
+    }
+
+    fOutTot->Close();
+
     
     //BP
     //TCanvas *cEffPerPlaneBP = new TCanvas();

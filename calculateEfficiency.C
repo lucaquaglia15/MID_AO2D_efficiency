@@ -18,6 +18,7 @@
 #include <stdlib.h> 
 #include "TKey.h"
 #include "TLine.h"
+#include <unordered_map>
 
 #include "MIDEfficiency/Efficiency.h" //MID efficiency
 #include "MIDBase/DetectorParameters.h" //Detector parameters
@@ -37,8 +38,10 @@ void calculateEfficiency() {
 
     //string period = "LHC23_pass4_skimmed_QC1"; //pp skimmed QC data of 2023 pass 4
     //string period = "LHC23_PbPb_pass3_I-A11"; //Pb-Pb dataset - one of the two used for the analyses of Nazar
-    string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
-    
+    //string period = "LHC23_PbPb_pass3_fullTPC"; //Pb-Pb dataset - other used for the analyses of Nazar
+    //string period = "LHC22o_pass7_minBias";
+    string period  = "DQ_LHC23_PbPb_pass4";
+
     //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23_pass4_skimmed_QC1.root"; //pp
     //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResults_LHC23zzh_pass4_test1_QC1_small.root"; //Pb-Pb
     //string inFileName = "/home/luca/cernbox/assegnoTorino/MIDefficiency/AO2D/AnalysisResultsLHC23zzn_apass3_all_I-A11_some.root";
@@ -217,6 +220,43 @@ void calculateEfficiency() {
         }
     }
 
+    //TH2F *hEffLB2D = new TH2F("hEffLB2D","hEffLB2D",14,-7,7,);
+
+    double plane = 0, LB936 = 0, LB = 0;
+    int maxLines = 4;
+    float effLB2Dboth = 0, effLB2DBP = 0, effLB2DNBP = 0;
+    // _____ _____ _____
+    // |    ||    ||    |
+    // |    ||    ||    |
+    // |____||____||____|
+    //
+
+    //vector of struct, push back the struct populated with counts
+    for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
+        for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+            for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {                   
+                
+                plane = o2::mid::detparams::getChamber(ide); //Get detection plane
+
+                LB936 = mapping.getBoardId(iline,icol,ide) + 234*plane; //LB translated to 1->936 from 1->234
+                LB = mapping.getBoardId(iline,icol,ide);
+
+                hFiredBPLB->GetBinContent(LB936); //BP
+                hFiredNBPLB->GetBinContent(LB936); //NBP
+                hFiredBothPlanesLB->GetBinContent(LB936); //Both
+                hTotLB->GetBinContent(LB936); //Total
+
+                effLB2Dboth = hFiredBothPlanesLB->GetBinContent(LB936)/hTotLB->GetBinContent(LB936);
+                effLB2DBP = hFiredBPLB->GetBinContent(LB936)/hTotLB->GetBinContent(LB936);
+                effLB2DNBP = hFiredNBPLB->GetBinContent(LB936)/hTotLB->GetBinContent(LB936);
+
+                //cout << LB936 << "\t" << (BothPlanesLBCountsProj->GetBinContent(LB936)/totLBCountsProj->GetBinContent(LB936))*100 << "\t" << 
+                //(BPLBCountsProj->GetBinContent(LB936)/totLBCountsProj->GetBinContent(LB936))*100 << "\t" << 
+                //(NBPLBCountsProj->GetBinContent(LB936)/totLBCountsProj->GetBinContent(LB936))*100 << endl;
+            }
+        }
+    }
+
     for (int i = 1; i <= nBinsBoard; i++) {
         //cout << "LB Both planes " <<  i << "\t" << hFiredBothPlanesLB->GetBinContent(i) << "\t" << hTotLB->GetBinContent(i) << endl;
         
@@ -235,23 +275,43 @@ void calculateEfficiency() {
             errEffNBPLB = TMath::Sqrt(effNBPLB*(100-effNBPLB)/hTotLB->GetBinContent(i));
 
             if (effBPLB <= 50) {
-                    //cout << "Eff <= 50 LB " << i << "\t eff BP \t" << effBPLB << "\t +- \t" << errEffBPLB << endl;
                     lowEff << "50\t" << i << "\tBP\t" << effBPLB << "\t" << errEffBPLB << "\n";
             }
 
             else if (effBPLB > 50 && effBPLB <= 80) {
-                    //cout << "50 < Eff <= 80 LB " << i << "\t eff BP \t" << effBPLB << "\t +- \t" << errEffBPLB << endl;
                     lowEff << "50_80\t" << i << "\tBP\t" << effBPLB << "\t" << errEffBPLB << "\n";
             }
 
+            else if (effBPLB > 80 && effBPLB <= 90) {
+                    lowEff << "80_90\t" << i << "\tBP\t" << effBPLB << "\t" << errEffBPLB << "\n";
+            }
+
+            else if (effBPLB > 90 && effBPLB <= 95) {
+                    lowEff << "90_95\t" << i << "\tBP\t" << effBPLB << "\t" << errEffBPLB << "\n";
+            }
+
+            else if (effBPLB > 95) {
+                    lowEff << "95\t" << i << "\tBP\t" << effBPLB << "\t" << errEffBPLB << "\n";
+            }
+
             if (effNBPLB <= 50) {
-                    //cout << "Eff <= 50 LB " << i << "\t eff NBP \t" << effNBPLB << "\t +- \t" << errEffNBPLB << endl;
                     lowEff << "50\t" << i << "\tNBP\t" << effNBPLB << "\t" << errEffNBPLB << "\n";
             }
 
             else if (effNBPLB > 50 && effNBPLB <= 80) {
-                    //cout << "50 < Eff <= 80 LB " << i << "\t eff NBP \t" << effNBPLB << "\t +- \t" << errEffNBPLB << endl;
                     lowEff << "50_80\t" << i << "\tNBP\t" << effNBPLB << "\t" << errEffNBPLB << "\n";
+            }
+
+            else if (effNBPLB > 80 && effNBPLB <= 90) {
+                    lowEff << "80_90\t" << i << "\tNBP\t" << effNBPLB << "\t" << errEffNBPLB << "\n";
+            }
+
+            else if (effNBPLB > 90 && effNBPLB <= 95) {
+                    lowEff << "90_95\t" << i << "\tNBP\t" << effNBPLB << "\t" << errEffNBPLB << "\n";
+            }
+
+            else if (effNBPLB > 95) {
+                    lowEff << "95\t" << i << "\tNBP\t" << effNBPLB << "\t" << errEffNBPLB << "\n";
             }
 
             hEffLB_both->Fill(i,effBothLB);
@@ -475,8 +535,10 @@ void calculateEfficiency() {
         hEffRPCplanes2D_both[plane]->SetTitle((planeName[plane]+" both").c_str());
         hEffRPCplanes2D_both[plane]->GetZaxis()->SetRangeUser(0,100);
         hEffRPCplanes2D_both[plane]->SetStats(0);
+        hEffRPCplanes2D_both[plane]->GetXaxis()->SetNdivisions(503);
         hEffRPCplanes2D_both[plane]->Draw("COLZ");
     } 
+    cEffRPC_plane_both->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/2D_both_"+period+".png").c_str());
 
     //2D eff map per RPC BP
     TCanvas *cEffRPC_plane_BP = new TCanvas();
@@ -488,8 +550,10 @@ void calculateEfficiency() {
         hEffRPCplanes2D_BP[plane]->SetTitle((planeName[plane]+" BP").c_str());
         hEffRPCplanes2D_BP[plane]->GetZaxis()->SetRangeUser(0,100);
         hEffRPCplanes2D_BP[plane]->SetStats(0);
+        hEffRPCplanes2D_BP[plane]->GetXaxis()->SetNdivisions(503);
         hEffRPCplanes2D_BP[plane]->Draw("COLZ");
     }
+    cEffRPC_plane_BP->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/2D_BP_"+period+".png").c_str());
 
     //2D eff map per RPC NBP
     TCanvas *cEffRPC_plane_NBP = new TCanvas();
@@ -501,8 +565,10 @@ void calculateEfficiency() {
         hEffRPCplanes2D_NBP[plane]->SetTitle((planeName[plane]+" NBP").c_str());
         hEffRPCplanes2D_NBP[plane]->GetZaxis()->SetRangeUser(0,100);
         hEffRPCplanes2D_NBP[plane]->SetStats(0);
+        hEffRPCplanes2D_NBP[plane]->GetXaxis()->SetNdivisions(503);
         hEffRPCplanes2D_NBP[plane]->Draw("COLZ");
     }
+    cEffRPC_plane_NBP->SaveAs(("/home/luca/cernbox/assegnoTorino/MIDefficiency/presentations/images/2D_NBP_"+period+".png").c_str());
 
     //Analyze the 4 periods of LHC23 pass4 skimmed QC1
     string periods[4] = {"za","zj","zs","zt"};

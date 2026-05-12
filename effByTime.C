@@ -126,21 +126,22 @@ void effByTime() { //Main function
 
     string bField_pp2023;
     vector<string> vBField_pp2023, vBField_2023;
+    bool isIn;
 
-    while (hIR_pp2023 >> run_pp2023 >> IR_pp2023 >> bField_pp2023 >> start_pp2023 >> end_pp2023) {
-        vRun_pp2023.push_back(run_pp2023);
-        vRun_2023.push_back(run_pp2023);
-        vIR_pp2023.push_back(IR_pp2023/1000);
-        vBField_pp2023.push_back(bField_pp2023);
-        vBField_2023.push_back(bField_pp2023);
-        vStart_pp2023.push_back(start_pp2023);
-        vStart_2023.push_back(start_pp2023);
-        vEnd_pp2023.push_back(end_pp2023);
+    while (hIR_pp2023 >> isIn >> run_pp2023 >> IR_pp2023 >> bField_pp2023 >> start_pp2023 >> end_pp2023) {
+        if (isIn) {
+            vRun_pp2023.push_back(run_pp2023);
+            vRun_2023.push_back(run_pp2023);
+            vIR_pp2023.push_back(IR_pp2023/1000);
+            vBField_pp2023.push_back(bField_pp2023);
+            vBField_2023.push_back(bField_pp2023);
+            vStart_pp2023.push_back(start_pp2023);
+            vStart_2023.push_back(start_pp2023);
+            vEnd_pp2023.push_back(end_pp2023);
+        }
     }
 
     //IR PbPb   
-    bool isIn;
-
     double start_PbPb2023, end_PbPb2023;
     vector<double> vStart_PbPb2023, vEnd_PbPb2023;
 
@@ -925,10 +926,15 @@ void effByTime() { //Main function
     bool isTime = false;
 
     //Both
-    TCanvas *cEffPerPlaneBoth = new TCanvas();
-    cEffPerPlaneBoth->Divide(1,4);
+    //TCanvas *cEffPerPlaneBoth = new TCanvas();
+    //cEffPerPlaneBoth->Divide(1,4);
+    TCanvas *cEffPerPlaneBoth[4];
+
     for (int i = 0; i < nBinsPlane; i++) {
-        cEffPerPlaneBoth->cd(i+1);
+        //cEffPerPlaneBoth->cd(i+1);
+        cEffPerPlaneBoth[i] = new TCanvas();
+        cEffPerPlaneBoth[i]->cd();
+
         gEffPerRunPlaneBoth.at(i)->SetMarkerStyle(8);
         gEffPerRunPlaneBoth.at(i)->SetMarkerSize(0);
         gEffPerRunPlaneBoth.at(i)->SetMarkerColor(kBlack);
@@ -942,17 +948,18 @@ void effByTime() { //Main function
         }
         else {
             gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitle("Run #");
+            gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetNoExponent(1);
         }
-        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleOffset(0.5);
-        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleOffset(0.9);
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleSize(0.04);
         gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetTitleFont(62);
-        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetLabelSize(0.04);
         gEffPerRunPlaneBoth.at(i)->GetXaxis()->SetLabelFont(62);
         gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
-        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleOffset(0.35);
-        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleOffset(1.05);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleSize(0.04);
         gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetTitleFont(62);
-        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetLabelSize(0.04);
         gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneBoth.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneBoth.at(i)->Draw("AP");
@@ -1014,10 +1021,15 @@ void effByTime() { //Main function
     }
     
     //BP
-    TCanvas *cEffPerPlaneBP = new TCanvas();
-    cEffPerPlaneBP->Divide(1,4);
+    //TCanvas *cEffPerPlaneBP = new TCanvas();
+    //cEffPerPlaneBP->Divide(1,4);
+    TCanvas *cEffPerPlaneBP[4];
+    
     for (int i = 0; i < nBinsPlane; i++) {
-        cEffPerPlaneBP->cd(i+1);
+        //cEffPerPlaneBP->cd(i+1);
+        cEffPerPlaneBP[i] = new TCanvas();
+        cEffPerPlaneBP[i]->cd();
+
         gEffPerRunPlaneBP.at(i)->SetMarkerStyle(8);
         gEffPerRunPlaneBP.at(i)->SetMarkerSize(1);
         gEffPerRunPlaneBP.at(i)->SetMarkerColor(kRed);
@@ -1031,17 +1043,18 @@ void effByTime() { //Main function
         }
         else {
             gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitle("Run #");
+            gEffPerRunPlaneBP.at(i)->GetXaxis()->SetNoExponent(1);
         }
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleOffset(0.9);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleSize(0.04);
         gEffPerRunPlaneBP.at(i)->GetXaxis()->SetTitleFont(62);
-        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelSize(0.04);
         gEffPerRunPlaneBP.at(i)->GetXaxis()->SetLabelFont(62);
         gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleOffset(1.05);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleSize(0.04);
         gEffPerRunPlaneBP.at(i)->GetYaxis()->SetTitleFont(62);
-        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelSize(0.04);
         gEffPerRunPlaneBP.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneBP.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneBP.at(i)->Draw("AP");
@@ -1084,15 +1097,6 @@ void effByTime() { //Main function
             }
         }
 
-        /*for (int j = 0; j < gEffPerRunPlaneBP.at(i)->GetN(); j++) {
-            if (vBField_2023.at(j) == "minus") {
-                gEffPerRunPlaneBP.at(i)->GetPoint(j,x,y);
-                m = new TMarker(x,y,8);
-                m->SetMarkerColor(kOrange);
-                m->SetMarkerSize(1);
-                m->Draw("SAME");
-            }
-        }*/
         TLegend *lEffPlaneBP = (TLegend*)lEffPlenBPIR->Clone();
         lEffPlaneBP->Draw("SAME");
         gPad->Update();
@@ -1112,10 +1116,15 @@ void effByTime() { //Main function
     }
     
     //NBP
-    TCanvas *cEffPerPlaneNBP = new TCanvas();
-    cEffPerPlaneNBP->Divide(1,4);
+    //TCanvas *cEffPerPlaneNBP = new TCanvas();
+    //cEffPerPlaneNBP->Divide(1,4);
+    TCanvas *cEffPerPlaneNBP[4];
+    
     for (int i = 0; i < nBinsPlane; i++) {
-        cEffPerPlaneNBP->cd(i+1);
+        //cEffPerPlaneNBP->cd(i+1);
+        cEffPerPlaneNBP[i] = new TCanvas();
+        cEffPerPlaneNBP[i]->cd();
+
         gEffPerRunPlaneNBP.at(i)->SetMarkerStyle(8);
         gEffPerRunPlaneNBP.at(i)->SetMarkerSize(1);
         gEffPerRunPlaneNBP.at(i)->SetMarkerColor(kGreen+3);
@@ -1129,17 +1138,18 @@ void effByTime() { //Main function
         }
         else {
             gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitle("Run #");
+            gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetNoExponent(1);
         }
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleOffset(0.5);
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleOffset(0.9);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleSize(0.04);
         gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetTitleFont(62);
-        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelSize(0.04);
         gEffPerRunPlaneNBP.at(i)->GetXaxis()->SetLabelFont(62);
         gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitle("Efficiency [%]");
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleOffset(0.35);
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleOffset(1.05);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleSize(0.04);
         gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetTitleFont(62);
-        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelSize(0.07);
+        gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelSize(0.04);
         gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetLabelFont(62);
         //gEffPerRunPlaneNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunPlaneNBP.at(i)->Draw("AP");
@@ -1182,16 +1192,6 @@ void effByTime() { //Main function
             }
         }
 
-
-        /*for (int j = 0; j < gEffPerRunPlaneNBP.at(i)->GetN(); j++) {
-            if (vBField_2023.at(j) == "minus") {
-                gEffPerRunPlaneNBP.at(i)->GetPoint(j,x,y);
-                m = new TMarker(x,y,8);
-                m->SetMarkerColor(kOrange);
-                m->SetMarkerSize(1);
-                m->Draw("SAME");
-            }
-        }*/
         TLegend *lEffPlaneNBP = (TLegend*)lEffPlenNBPIR->Clone();
         lEffPlaneNBP->Draw("SAME");
         gPad->Update();
@@ -1522,7 +1522,7 @@ void effByTime() { //Main function
         //gEffPerRunRPCNBP.at(i)->GetYaxis()->SetRangeUser(85,100);
         gEffPerRunRPCNBP.at(i)->Draw("AP");
     }
-    
+
     //hRun_pp2023.close();
     //hDate_pp2023.close();
     //hRun_PbPb2023.close();
@@ -1530,16 +1530,18 @@ void effByTime() { //Main function
     hIR_pp2023.close();
     hIR_PbPb2023.close();
 
-    bool saveData = true;
+    bool saveData = false;
     
     if (saveData) {
         fOutEffPlane->cd();
         cEffPlaneBothPlanesIR->Write("effPerPlaneBothPlanesVsIR");
         cEffPlaneBPIR->Write("effPerPlaneBPVsIR");
         cEffPlaneNBPIR->Write("effPerPlaneNBPVsIR");
-        cEffPerPlaneBoth->Write("effPerPlaneBothPlanesVsIR");
-        cEffPerPlaneBP->Write("effPerPlaneBPVsRun");
-        cEffPerPlaneNBP->Write("effPerPlaneBPVsRun");
+        for (int i = 0; i < nBinsPlane; i++) {
+            cEffPerPlaneBoth[i]->Write(("effPerPlaneBothPlanesVsRun_"+planeName[i]).c_str());
+            cEffPerPlaneBP[i]->Write(("effPerPlaneBPVsRun_"+planeName[i]).c_str());
+            cEffPerPlaneNBP[i]->Write(("effPerPlaneBPVsRun_"+planeName[i]).c_str());
+        }
         fOutEffPlane->Close();
     }
 }
